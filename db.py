@@ -521,6 +521,30 @@ def _existing_backups():
     return [path for _mtime, path in found]
 
 
+def _sync_pinned_admin_password(conn):
+    """Keep the admin password equal to SANADEX_ADMIN_PASSWORD when it is set.
+
+    Hosting panels cannot always run a terminal, so this is the supported way to
+    choose (and keep) the administrator password across deploys. While the
+    variable is set it wins; remove it to change the password from the UI.
+    """
+    pinned = os.environ.get('SANADEX_ADMIN_PASSWORD')
+    if not pinned or len(pinned) < 6 or DIALECT != 'sqlite':
+        return
+    from framework import check_password, hash_password
+    admin = one(conn, "SELECT * FROM users WHERE username='admin'")
+    if not admin:
+        return
+    if not check_password(pinned, admin['password']):
+        conn.execute('UPDATE users SET password=?, active=1, is_admin=1 WHERE id=?',
+                     (hash_password(pinned), admin['id']))
+        conn.commit()
+        print('  Admin password set from SANADEX_ADMIN_PASSWORD')
+    else:
+        print('  Admin password is pinned by SANADEX_ADMIN_PASSWORD '
+              '(remove the variable to change it from the UI)')
+
+
 def seed(conn):
     """Insert sensible defaults for a brand new database (idempotent)."""
     from framework import hash_password
@@ -627,6 +651,7 @@ def init_db():
                 conn.rollback()
         migrate(conn)
         seed(conn)
+        _sync_pinned_admin_password(conn)
     finally:
         conn.close()
     return True

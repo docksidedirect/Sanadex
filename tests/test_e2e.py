@@ -36,6 +36,7 @@ for folder in (TEST_BACKUPS, TEST_UPLOADS):
 db.BACKUP_DIR = TEST_BACKUPS
 db.UPLOAD_DIR = TEST_UPLOADS
 db.init_db()
+os.environ.pop('SANADEX_ADMIN_PASSWORD', None)  # only pins the very first seed
 
 import app  # noqa: E402
 import barcode as barcode_lib  # noqa: E402

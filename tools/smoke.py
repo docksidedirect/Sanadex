@@ -25,6 +25,7 @@ _shutil.rmtree(_SMOKE_BACKUPS, ignore_errors=True)
 os.makedirs(_SMOKE_BACKUPS, exist_ok=True)
 db.BACKUP_DIR = _SMOKE_BACKUPS
 db.init_db()
+os.environ.pop('SANADEX_ADMIN_PASSWORD', None)
 import app  # noqa: E402
 
 STATUS = []
