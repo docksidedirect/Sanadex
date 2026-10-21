@@ -88,3 +88,7 @@ $RECYCLE.BIN/
 
 # ---------------------------------------------------------------- local overrides
 docker-compose.override.yml
+
+# retired legacy database files
+*.migrated
+sahm.db*
