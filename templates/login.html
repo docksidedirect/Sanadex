@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}" data-theme="{{ theme }}" data-accent="{{ company.accent or 'clay' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t('login') }} · Sanadex.wanis.online</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css?v=4">
+</head>
+<body>
+<div class="auth">
+  <aside class="auth-side">
+    <div class="auth-brand">
+      <span class="brand-mark">S</span>
+      <span><strong>Sanadex</strong><em>.wanis.online</em></span>
+    </div>
+    <div class="auth-copy">
+      <h1>{{ t('tagline') }}</h1>
+      <p>{{ t('login_brand_line') }}</p>
+      <ul class="auth-points">
+        <li>{{ icon('box')|safe }} {{ t('items') }} · {{ t('stores') }} · {{ t('barcode_labels') }}</li>
+        <li>{{ icon('file-text')|safe }} {{ t('sales_invoices') }} · {{ t('purchase_invoices') }} · {{ t('report_tax') }}</li>
+        <li>{{ icon('wallet')|safe }} {{ t('treasuries') }} · {{ t('vouchers') }} · {{ t('cheques') }}</li>
+        <li>{{ icon('chart')|safe }} {{ t('reports') }} · {{ t('balance_sheet') }} · {{ t('report_pl') }}</li>
+        <li>{{ icon('database')|safe }} {{ t('auto_backup') }} · Google Drive · {{ t('restore') }}</li>
+      </ul>
+    </div>
+    <div class="auth-foot">Sanadex.wanis.online — {{ t('tagline_long') }}</div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <div class="auth-lang">
+        <a class="chip {{ 'is-on' if lang == 'ar' }}" href="{{ url_for('set_lang', code='ar') }}">العربية</a>
+        <a class="chip {{ 'is-on' if lang == 'en' }}" href="{{ url_for('set_lang', code='en') }}">English</a>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h2>{{ t('welcome_back') }}</h2>
+          <p class="sub">{{ t('login_hint') }}</p>
+          {% for flash in flashes %}
+          <div class="flash {{ flash.cat }}" style="margin-bottom:12px">{{ flash.msg }}</div>
+          {% endfor %}
+          <form method="post" action="{{ url_for('login') }}" data-busy="off" autocomplete="off">
+            <div class="field" style="margin-bottom:12px">
+              <label class="label" for="username">{{ t('username') }}</label>
+              <input class="input" id="username" name="username" autocomplete="username" autofocus required>
+            </div>
+            <div class="field" style="margin-bottom:16px">
+              <label class="label" for="password">{{ t('password') }}</label>
+              <div class="input-group">
+                <input class="input" id="password" name="password" type="password"
+                       autocomplete="current-password" required>
+                <button class="btn btn-icon" type="button" id="reveal" tabindex="-1"
+                        aria-label="{{ t('show_password') }}" title="{{ t('show_password') }}">
+                  <svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block btn-lg" type="submit">{{ t('login') }}</button>
+          </form>
+          <p class="tiny muted" style="margin:14px 0 0">{{ t('login_default') }}</p>
+          <p class="tiny muted" style="margin:6px 0 0">{{ t('login_recovery') }}</p>
+        </div>
+      </div>
+      <p class="tiny muted" style="text-align:center;margin-top:14px">Sanadex.wanis.online</p>
+    </div>
+  </main>
+</div>
+<script src="/static/app.js?v=4"></script>
+<script>
+(function () {
+  var input = document.getElementById('password');
+  var button = document.getElementById('reveal');
+  if (!input || !button) return;
+  button.addEventListener('click', function () {
+    var hidden = input.type === 'password';
+    input.type = hidden ? 'text' : 'password';
+    button.setAttribute('aria-label', hidden ? '{{ t('hide_password') }}' : '{{ t('show_password') }}');
+    input.focus();
+  });
+})();
+</script>
+</body>
+</html>

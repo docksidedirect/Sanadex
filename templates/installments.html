@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('installment_due') }}">{{ icon('clock')|safe }} {{ t('due_installments') }}</a>
+{% endblock %}
+{% block content %}
+<div class="grid grid-side">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('installment_plans') }}</span>
+        <div class="card-actions"><span class="badge b-neutral">{{ plans|length }}</span></div></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ t('customer') }}</th><th class="num">{{ t('plan_total') }}</th>
+            <th class="num">{{ t('plan_count') }}</th><th>{{ t('plan_period') }}</th>
+            <th class="num">{{ t('remaining') }}</th><th class="act"></th></tr></thead>
+          <tbody>
+            {% for plan in plans %}
+            <tr>
+              <td><a href="{{ url_for('installment_plan_view', pid=plan.id) }}">{{ plan.customer_name }}</a>
+                <div class="tiny muted">{{ plan.start_date }}</div></td>
+              <td class="num">{{ plan.total|money }}</td>
+              <td class="num">{{ plan.count }}</td>
+              <td class="tiny">{{ t('period_' + plan.period) }}</td>
+              <td class="num strong">{{ plan.remaining_amount|money }}</td>
+              <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('installment_plan_view', pid=plan.id) }}">{{ icon('eye')|safe }}</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6"><div class="empty">{{ icon('calendar')|safe }}<b>{{ t('no_data') }}</b>
+              <p>{{ t('new_plan') }}</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('due_installments') }}</span></div>
+      <div class="table-wrap">
+        <table class="table table-sm">
+          <thead><tr><th>{{ t('customer') }}</th><th>{{ t('due_date') }}</th>
+            <th class="num">{{ t('installment_amount') }}</th><th></th></tr></thead>
+          <tbody>
+            {% for row in due %}
+            <tr class="{{ 'warn-row' if row.due_date < today }}">
+              <td>{{ row.customer_name }}</td>
+              <td class="mono-sm">{{ row.due_date }}</td>
+              <td class="num">{{ row.amount|money }}</td>
+              <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('installment_plan_view', pid=row.plan_id) }}">{{ t('installment_pay') }}</a></td>
+            </tr>
+            {% else %}<tr><td colspan="4" class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" class="card">
+    <div class="card-head"><span class="card-title">{{ t('new_plan') }}</span></div>
+    <div class="card-body stack">
+      <div class="field">
+        <label class="label" for="customer_id">{{ t('customer') }}</label>
+        <select class="select" id="customer_id" name="customer_id" required>
+          {% for customer in customers %}<option value="{{ customer.id }}">{{ customer.name }} ({{ customer.balance|money }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="label" for="invoice_id">{{ t('invoice') }}</label>
+        <select class="select" id="invoice_id" name="invoice_id">
+          <option value="">{{ t('none') }}</option>
+          {% for invoice in invoices %}<option value="{{ invoice.id }}">{{ invoice.number }} · {{ invoice.net|money }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label class="label" for="total">{{ t('plan_total') }}</label>
+          <input class="input mono" id="total" name="total" type="number" step="any" required>
+        </div>
+        <div class="field" style="flex:1">
+          <label class="label" for="count">{{ t('plan_count') }}</label>
+          <input class="input mono" id="count" name="count" type="number" min="1" value="3">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label class="label" for="period">{{ t('plan_period') }}</label>
+          <select class="select" id="period" name="period">
+            <option value="month">{{ t('period_month') }}</option>
+            <option value="week">{{ t('period_week') }}</option>
+            <option value="day">{{ t('period_day') }}</option>
+            <option value="year">{{ t('period_year') }}</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1">
+          <label class="label" for="start_date">{{ t('start_date') }}</label>
+          <input class="input" id="start_date" name="start_date" type="date" value="{{ now }}">
+        </div>
+      </div>
+      <div class="field">
+        <label class="label" for="down_payment">{{ t('down_payment') }}</label>
+        <input class="input mono" id="down_payment" name="down_payment" type="number" step="any" value="0">
+      </div>
+      <div class="field">
+        <label class="label" for="notes">{{ t('notes') }}</label>
+        <textarea class="textarea" id="notes" name="notes" style="min-height:56px"></textarea>
+      </div>
+      <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

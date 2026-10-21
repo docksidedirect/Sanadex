@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('items') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" class="card">
+  <div class="card-head">
+    <span class="card-title">{{ t('bulk_price') }}</span>
+    <div class="card-actions"><span class="tiny muted">{{ t('bulk_price_hint') }}</span></div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ t('code') }}</th><th>{{ t('item') }}</th><th class="num">{{ t('purchase_price') }}</th>
+        <th class="num">{{ t('sale_price') }}</th><th class="num">{{ t('profit') }}</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="mono-sm">{{ row.code or '—' }}<input type="hidden" name="item_id" value="{{ row.id }}"></td>
+          <td>{{ row.name }}</td>
+          <td><input class="input mono" type="number" step="any" name="purchase_price" value="{{ row.purchase_price }}"></td>
+          <td><input class="input mono" type="number" step="any" name="sale_price" value="{{ row.sale_price }}"></td>
+          <td class="num">{{ (row.sale_price - row.purchase_price)|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-body row">
+    <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save_changes') }}</button>
+    <a class="btn btn-ghost" href="{{ url_for('items') }}">{{ t('cancel') }}</a>
+  </div>
+</form>
+{% endblock %}

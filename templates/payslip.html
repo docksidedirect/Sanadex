@@ -1,0 +1,36 @@
+{% extends 'print_base.html' %}
+{% block toolbar %}
+<a class="btn" href="{{ url_for('payroll_view', rid=run.id) }}">{{ t('back') }}</a>
+{% endblock %}
+{% block doc %}
+<div class="sheet-head">
+  <div class="sheet-company">
+    {% if company.logo %}<img class="sheet-logo" src="/uploads/{{ company.logo }}" alt="">{% endif %}
+    <h2>{{ company.name or 'Sanadex.wanis.online' }}</h2>
+    <p>{{ company.address or '' }}{% if company.phone %} · {{ company.phone }}{% endif %}</p>
+  </div>
+  <div class="doc-title">
+    <h3>{{ t('payslip') }}</h3>
+    <div class="doc-no">{{ t('payroll_month') }}: {{ run.month }}</div>
+    <div class="doc-meta">{{ t('date') }}: {{ run.run_date }}</div>
+  </div>
+</div>
+<div class="party-bar">
+  <div><div class="k">{{ t('employee') }}</div><div><b>{{ row.employee_name }}</b></div>
+    <div>{{ row.job_name or '' }} · {{ row.phone or '' }}</div></div>
+  <div><div class="k">{{ t('salary_type') }}</div>
+    <div>{{ t('salary_monthly' if row.salary_type == 'monthly' else 'salary_daily') }}</div></div>
+</div>
+<table class="items-table">
+  <tbody>
+    <tr><th>{{ t('base_salary') }}</th><td class="num">{{ row.base|money }}</td></tr>
+    <tr><th>{{ t('bonus') }}</th><td class="num">{{ row.bonus|money }}</td></tr>
+    <tr><th>{{ t('deduction') }}</th><td class="num">−{{ row.deduction|money }}</td></tr>
+    <tr><th>{{ t('advance') }}</th><td class="num">−{{ row.advance|money }}</td></tr>
+    <tr><th>{{ t('att_days') }}</th><td class="num">{{ row.att_days|num }}</td></tr>
+  </tbody>
+  <tfoot><tr><th>{{ t('net_salary') }}</th><td class="num">{{ row.net|money }} {{ company.currency }}</td></tr></tfoot>
+</table>
+<div class="signatures"><div><div class="line">{{ t('signature_receiver') }}</div></div>
+  <div><div class="line">{{ t('signature_accountant') }}</div></div></div>
+{% endblock %}

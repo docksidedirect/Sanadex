@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block actions %}
+<form method="post" action="{{ url_for('backup_now') }}">
+  <button class="btn btn-primary" type="submit">{{ icon('database')|safe }} {{ t('backup_now') }}</button>
+</form>
+{% endblock %}
+{% block content %}
+<div class="grid grid-side">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">{{ t('backups_list') }}</span>
+        <div class="card-actions"><span class="badge b-neutral">{{ backups|length }}</span></div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ t('backup_when') }}</th><th class="num">{{ t('backup_size') }}</th>
+            <th class="act">{{ t('actions') }}</th></tr></thead>
+          <tbody>
+            {% for backup in backups %}
+            <tr>
+              <td class="mono-sm">{{ backup.name }}</td>
+              <td class="num">{{ (backup.size / 1024)|round(1) }} KB</td>
+              <td class="act">
+                <a class="btn btn-sm btn-ghost" href="{{ url_for('backup_download', name=backup.name) }}">{{ icon('download')|safe }}</a>
+                <form class="inline-form" method="post" action="{{ url_for('backup_restore_do') }}"
+                      data-confirm="{{ t('restore_confirm') }}">
+                  <input type="hidden" name="existing" value="{{ backup.name }}">
+                  <button class="btn btn-sm btn-ghost" type="submit">{{ icon('refresh')|safe }} {{ t('restore') }}</button>
+                </form>
+                <form class="inline-form" method="post" action="{{ url_for('backup_delete') }}"
+                      data-confirm="{{ t('confirm_delete') }}">
+                  <input type="hidden" name="name" value="{{ backup.name }}">
+                  <button class="btn btn-sm btn-ghost" type="submit">{{ icon('trash')|safe }}</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3"><div class="empty">{{ icon('database')|safe }}<b>{{ t('no_data') }}</b>
+              <p>{{ t('auto_backup_hint') }}</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('restore_title') }}</span></div>
+      <div class="card-body">
+        <p class="tiny muted">{{ t('restore_hint') }}</p>
+        <form method="post" action="{{ url_for('backup_restore_do') }}" enctype="multipart/form-data"
+              class="row" data-confirm="{{ t('restore_confirm') }}">
+          <input class="input" type="file" name="file" accept=".db" style="max-width:320px">
+          <button class="btn btn-danger" type="submit">{{ icon('refresh')|safe }} {{ t('restore') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">{{ t('gdrive_title') }}</span>
+        <div class="card-actions">
+          <span class="badge {{ 'b-ok' if connected else 'b-neutral' }}">
+            {{ t('gdrive_connected') if connected else t('gdrive_not_connected') }}</span>
+        </div>
+      </div>
+      <div class="card-body stack">
+        <p class="tiny muted" style="margin:0">{{ t('gdrive_hint') }}</p>
+        {% if company.gdrive_email %}<div class="tiny">{{ company.gdrive_email }}</div>{% endif %}
+        {% if connected %}
+        <div class="tiny muted">{{ t('gdrive_last_sync') }}:
+          {{ company.gdrive_last_sync|stamp if company.gdrive_last_sync else t('never') }}</div>
+        <div class="row">
+          <form method="post" action="{{ url_for('gdrive_upload') }}">
+            <button class="btn btn-primary" type="submit">{{ icon('upload')|safe }} {{ t('gdrive_upload_now') }}</button>
+          </form>
+          <form method="post" action="{{ url_for('gdrive_disconnect') }}">
+            <button class="btn btn-ghost" type="submit">{{ t('gdrive_disconnect') }}</button>
+          </form>
+        </div>
+        {% else %}
+        <a class="btn btn-primary" href="{{ url_for('gdrive_connect') }}">{{ icon('globe')|safe }} {{ t('gdrive_connect') }}</a>
+        <div class="tiny muted">Redirect URI: <span class="mono-sm">{{ redirect_uri }}</span></div>
+        {% endif %}
+        {% if drive_error %}<div class="flash danger">{{ drive_error }}</div>{% endif %}
+        {% if drive_files %}
+        <div class="table-wrap">
+          <table class="table table-sm">
+            <thead><tr><th>{{ t('backup_when') }}</th><th class="act"></th></tr></thead>
+            <tbody>
+              {% for file in drive_files %}
+              <tr><td class="mono-sm">{{ file.name }}<div class="tiny muted">{{ file.createdTime }}</div></td>
+                <td class="act">
+                  <form method="post" action="{{ url_for('gdrive_restore', fid=file.id) }}"
+                        data-confirm="{{ t('restore_confirm') }}">
+                    <button class="btn btn-sm btn-ghost" type="submit">{{ t('gdrive_download') }}</button>
+                  </form>
+                </td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('auto_backup') }}</span></div>
+      <div class="card-body">
+        <div class="kv">
+          <dt>{{ t('last_backup') }}</dt><dd>{{ company.last_backup|stamp if company.last_backup else t('never') }}</dd>
+          <dt>{{ t('backup_hours') }}</dt><dd>{{ company.backup_hours or 24 }}</dd>
+          <dt>{{ t('db_engine') }}</dt><dd>{{ 'SQL Server' if false else 'SQLite' }}</dd>
+        </div>
+        <a class="btn btn-sm" style="margin-top:10px" href="{{ url_for('settings') }}#company">{{ t('settings') }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

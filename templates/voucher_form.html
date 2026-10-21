@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('vouchers') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post"
+      action="{{ url_for('voucher_edit', vid=row.id) if row.get('id') else url_for('voucher_new') }}"
+      class="card">
+  <div class="card-head"><span class="card-title">{{ t('new_voucher') if not row.get('id') else t('edit') }}</span></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="span-4 field">
+        <label class="label" for="vtype">{{ t('voucher_type') }}</label>
+        <select class="select" id="vtype" name="vtype">
+          <option value="receipt" {{ 'selected' if row.get('vtype') == 'receipt' }}>{{ t('receipt') }}</option>
+          <option value="payment" {{ 'selected' if row.get('vtype') == 'payment' }}>{{ t('payment') }}</option>
+        </select>
+      </div>
+      <div class="span-4 field">
+        <label class="label" for="treasury_id">{{ t('treasury') }}</label>
+        <select class="select" id="treasury_id" name="treasury_id">
+          {% for treasury in treasuries %}
+          <option value="{{ treasury.id }}" {{ 'selected' if row.get('treasury_id')|string == treasury.id|string }}>{{ treasury.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="span-4 field">
+        <label class="label" for="amount">{{ t('amount') }}</label>
+        <input class="input mono" id="amount" name="amount" type="number" step="any"
+               value="{{ row.get('amount') or '' }}" required>
+      </div>
+      <div class="span-4 field">
+        <label class="label" for="party_type">{{ t('party_type') }}</label>
+        <select class="select" id="party_type" name="party_type">
+          <option value="">{{ t('none') }}</option>
+          <option value="customer" {{ 'selected' if row.get('party_type') == 'customer' }}>{{ t('party_customer') }}</option>
+          <option value="supplier" {{ 'selected' if row.get('party_type') == 'supplier' }}>{{ t('party_supplier') }}</option>
+        </select>
+      </div>
+      <div class="span-8 field">
+        <label class="label" for="party_id">{{ t('party') }}</label>
+        <select class="select" id="party_id" name="party_id">
+          <option value="">{{ t('select') }}</option>
+          <optgroup label="{{ t('customers') }}">
+            {% for customer in customers %}<option value="{{ customer.id }}" data-kind="customer"
+              {{ 'selected' if row.get('party_type') == 'customer' and row.get('party_id')|string == customer.id|string }}>{{ customer.name }}</option>{% endfor %}
+          </optgroup>
+          <optgroup label="{{ t('suppliers') }}">
+            {% for supplier in suppliers %}<option value="{{ supplier.id }}" data-kind="supplier"
+              {{ 'selected' if row.get('party_type') == 'supplier' and row.get('party_id')|string == supplier.id|string }}>{{ supplier.name }}</option>{% endfor %}
+          </optgroup>
+        </select>
+      </div>
+      <div class="span-4 field">
+        <label class="label" for="vdate">{{ t('date') }}</label>
+        <input class="input" id="vdate" type="date" name="vdate" value="{{ row.get('vdate') or now }}">
+      </div>
+      <div class="span-8 field">
+        <label class="label" for="note">{{ t('description') }}</label>
+        <input class="input" id="note" name="note" value="{{ row.get('note') or '' }}">
+      </div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('vouchers') }}">{{ t('cancel') }}</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var kind = document.getElementById('party_type');
+  var party = document.getElementById('party_id');
+  function sync() {
+    [].forEach.call(party.querySelectorAll('option[data-kind]'), function (option) {
+      option.hidden = kind.value && option.getAttribute('data-kind') !== kind.value;
+    });
+    [].forEach.call(party.querySelectorAll('optgroup'), function (group, index) {
+      group.hidden = kind.value ? (index === 0 ? kind.value !== 'customer' : kind.value !== 'supplier') : false;
+    });
+  }
+  kind.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

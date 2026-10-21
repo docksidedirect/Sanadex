@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="?d1={{ d1 }}&amp;d2={{ d2 }}&amp;export=1">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<button class="btn" type="button" data-print>{{ icon('print')|safe }} {{ t('print_report') }}</button>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:14px">
+  <div class="toolbar">
+    <form method="get">
+      <input class="input" type="date" name="d1" value="{{ d1 }}" style="max-width:160px">
+      <input class="input" type="date" name="d2" value="{{ d2 }}" style="max-width:160px">
+      <button class="btn btn-sm" type="submit">{{ t('apply') }}</button>
+    </form>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('best_sellers') }}</span></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{ t('item') }}</th><th class="num">{{ t('qty') }}</th><th class="num">{{ t('revenue') }}</th></tr></thead>
+      <tbody>{% for row in best %}<tr><td>{{ row.name }}</td><td class="num">{{ row.qty|num }}</td>
+        <td class="num">{{ row.revenue|money }}</td></tr>
+        {% else %}<tr><td colspan="3" class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('worst_sellers') }}</span></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{ t('item') }}</th><th class="num">{{ t('qty') }}</th><th class="num">{{ t('revenue') }}</th></tr></thead>
+      <tbody>{% for row in worst %}<tr><td>{{ row.name }}</td><td class="num">{{ row.qty|num }}</td>
+        <td class="num">{{ row.revenue|money }}</td></tr>
+        {% else %}<tr><td colspan="3" class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

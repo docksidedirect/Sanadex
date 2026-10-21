@@ -1,0 +1,36 @@
+# Sanadex.wanis.online — Caddy (automatic HTTPS, simplest option)
+#
+# 1. install Caddy:  https://caddyserver.com/docs/install
+# 2. replace the domain and the port if needed
+# 3. put this file at /etc/caddy/Caddyfile
+# 4. systemctl reload caddy
+#
+# Caddy obtains and renews the TLS certificate automatically.
+
+sanadex.wanis.online {
+    encode gzip zstd
+    request_body {
+        max_size 32MB
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy same-origin
+        -Server
+    }
+
+    reverse_proxy 127.0.0.1:8000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        transport http {
+            read_timeout 120s
+            write_timeout 120s
+        }
+    }
+
+    log {
+        output file /var/log/caddy/sanadex.log
+        format console
+    }
+}

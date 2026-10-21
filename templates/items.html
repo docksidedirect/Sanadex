@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn btn-primary" href="{{ url_for('item_new') }}">{{ icon('plus')|safe }} {{ t('new_item') }}</a>
+<a class="btn" href="{{ url_for('item_import') }}">{{ icon('upload')|safe }} {{ t('import') }}</a>
+<a class="btn" href="{{ url_for('item_export') }}">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<a class="btn" href="{{ url_for('barcode') }}">{{ icon('barcode')|safe }} {{ t('barcode_labels') }}</a>
+{% endblock %}
+{% block content %}
+<div class="kpis" style="margin-bottom:14px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+  <div class="kpi"><span class="kpi-label">{{ t('items') }}</span><span class="kpi-value">{{ stats.total|num }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('low_stock') }}</span>
+    <span class="kpi-value" style="color:var(--warn)">{{ stats.low|num }}</span>
+    <a class="kpi-foot" href="{{ url_for('items') }}?low=1">{{ icon('alert')|safe }} {{ t('report_reorder') }}</a></div>
+  <div class="kpi"><span class="kpi-label">{{ t('bulk_price') }}</span>
+    <a class="btn btn-sm" style="margin-top:6px" href="{{ url_for('items_bulk_price') }}">{{ icon('edit')|safe }} {{ t('edit') }}</a></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <form method="get" action="{{ url_for('items') }}">
+      <div class="search-box">
+        {{ icon('search')|safe }}
+        <input class="input" type="search" name="s" value="{{ term }}" placeholder="{{ t('search') }}" autofocus>
+      </div>
+      <select class="select" name="cat" data-autosubmit style="max-width:180px">
+        <option value="">{{ t('category_all') }}</option>
+        {% for category in categories %}
+        <option value="{{ category }}" {{ 'selected' if category == cat }}>{{ category }}</option>
+        {% endfor %}
+      </select>
+      <a class="chip {{ 'is-on' if low }}" href="{{ url_for('items') }}?low={{ '' if low else '1' }}&s={{ term }}">{{ icon('alert')|safe }} {{ t('low_stock') }}</a>
+      <a class="chip {{ 'is-on' if expiring }}" href="{{ url_for('items') }}?expiring={{ '' if expiring else '1' }}&s={{ term }}">{{ icon('clock')|safe }} {{ t('expiring_soon') }}</a>
+      <a class="chip {{ 'is-on' if inactive }}" href="{{ url_for('items') }}?inactive={{ '' if inactive else '1' }}&s={{ term }}">{{ t('inactive') }}</a>
+      <input class="input" data-filter="#itemsTable" placeholder="{{ t('filter') }}" style="max-width:160px">
+      <span class="spacer"></span>
+      <span class="tiny muted"><span id="itemsCount">{{ rows|length }}</span> {{ t('of') }} {{ total }}</span>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="table" id="itemsTable">
+      <thead>
+        <tr><th>{{ t('code') }}</th><th>{{ t('item') }}</th><th>{{ t('category') }}</th>
+          <th class="num">{{ t('stock') }}</th><th class="num">{{ t('purchase_price') }}</th>
+          <th class="num">{{ t('sale_price') }}</th><th class="num">{{ t('units') }}</th>
+          <th>{{ t('expiry') }}</th><th class="act">{{ t('actions') }}</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="mono-sm">{{ row.code or '—' }}</td>
+          <td><a href="{{ url_for('item_edit', rid=row.id) }}">{{ row.name }}</a>
+            {% if row.brand %}<div class="tiny muted">{{ row.brand }}</div>{% endif %}</td>
+          <td class="tiny">{{ row.category or '—' }}</td>
+          <td class="num">
+            {% if row.reorder_level and row.stock <= row.reorder_level %}
+            <span class="badge b-warn">{{ row.stock|num }}</span>
+            {% else %}{{ row.stock|num }}{% endif %}
+          </td>
+          <td class="num">{{ row.purchase_price|money }}</td>
+          <td class="num strong">{{ row.sale_price|money }}</td>
+          <td class="num">{{ row.units_count }}</td>
+          <td class="tiny">
+            {% if row.next_expiry %}<span class="badge b-info">{{ row.next_expiry }}</span>{% else %}—{% endif %}
+          </td>
+          <td class="act">
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('barcode') }}?item={{ row.id }}" title="{{ t('barcode_labels') }}">{{ icon('barcode')|safe }}</a>
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('item_edit', rid=row.id) }}" title="{{ t('edit') }}">{{ icon('edit')|safe }}</a>
+            <form class="inline-form" method="post" action="{{ url_for('item_delete', rid=row.id) }}" data-confirm="{{ t('confirm_delete') }}">
+              <button class="btn btn-sm btn-ghost" type="submit" title="{{ t('delete') }}">{{ icon('trash')|safe }}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9"><div class="empty">{{ icon('box')|safe }}<b>{{ t('no_data') }}</b>
+          <p>{{ t('no_data_hint') }}</p>
+          <a class="btn btn-primary btn-sm" href="{{ url_for('item_new') }}">{{ t('new_item') }}</a></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pager.pages > 1 %}
+  <div class="pager">
+    <span>{{ t('page') }} {{ pager.page }} / {{ pager.pages }}</span><span class="spacer"></span>
+    {% if pager.prev %}<a href="{{ pager.prev }}">‹</a>{% endif %}
+    {% if pager.next %}<a href="{{ pager.next }}">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

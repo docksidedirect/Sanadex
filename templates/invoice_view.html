@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn btn-primary" href="{{ url_for('invoice_print', iid=inv.id) }}">{{ icon('print')|safe }} {{ t('print_invoice') }}</a>
+<a class="btn" href="{{ url_for('invoice_duplicate', iid=inv.id) }}">{{ icon('copy')|safe }} {{ t('duplicate') }}</a>
+<a class="btn" href="{{ url_for('sale_invoices' if inv.itype == 'sale' else 'purchase_invoices') }}">{{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+{% set tone = 'b-ok' if inv.status == 'paid' else ('b-warn' if inv.status == 'partial' else ('b-danger' if inv.status == 'cancelled' else 'b-info')) %}
+<div class="grid grid-side">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">{{ t('invoice') }} <span class="mono">{{ inv.number }}</span></span>
+        <div class="card-actions"><span class="badge {{ tone }}">{{ t('status_' + inv.status) }}</span></div>
+      </div>
+      <div class="card-body">
+        <div class="row between" style="align-items:flex-start">
+          <div>
+            <div class="section-label">{{ t('party') }}</div>
+            <div class="strong">{{ party.name or '—' }}</div>
+            <div class="tiny muted">{{ party.phone or '' }} {{ party.address or '' }}</div>
+          </div>
+          <div>
+            <div class="section-label">{{ t('invoice_date') }}</div>
+            <div class="mono">{{ inv.idate }}</div>
+            {% if inv.due_date %}<div class="tiny muted">{{ t('due_date') }}: {{ inv.due_date }}</div>{% endif %}
+          </div>
+          <div>
+            <div class="section-label">{{ t('store') }}</div>
+            <div>{{ store.name or '—' }}</div>
+            <div class="tiny muted">{{ t('treasury') }}: {{ treasury.name or '—' }}</div>
+          </div>
+          <div>
+            <div class="section-label">{{ t('tax') }}</div>
+            <div>{{ (inv.tax_percent|num) ~ '%' if inv.is_tax else t('non_tax_invoice') }}</div>
+            <div class="tiny muted">{{ t('created_by') }} {{ user.full_name or user.username or '—' }}</div>
+          </div>
+        </div>
+        <hr class="hr">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>#</th><th>{{ t('item') }}</th><th>{{ t('unit') }}</th>
+                <th class="num">{{ t('qty') }}</th><th class="num">{{ t('price') }}</th>
+                <th class="num">{{ t('total') }}</th></tr>
+            </thead>
+            <tbody>
+              {% for line in lines %}
+              <tr>
+                <td class="mono-sm">{{ loop.index }}</td>
+                <td>{{ line.item_name }}<div class="tiny muted">{{ line.item_code }}</div></td>
+                <td>{{ line.unit_name or '—' }}</td>
+                <td class="num">{{ line.qty|num }}</td>
+                <td class="num">{{ line.price|money }}</td>
+                <td class="num">{{ line.total|money }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="totals" style="margin-top:12px">
+          <div class="totals-row"><span>{{ t('subtotal') }}</span><span class="mono">{{ inv.subtotal|money }}</span></div>
+          {% if inv.discount %}<div class="totals-row"><span>{{ t('discount') }}</span><span class="mono">{{ inv.discount|money }}</span></div>{% endif %}
+          <div class="totals-row"><span>{{ t('tax') }}</span><span class="mono">{{ inv.tax|money }}</span></div>
+          <div class="totals-row grand"><span>{{ t('net') }}</span><span class="mono">{{ inv.net|money }}</span></div>
+          <div class="totals-row"><span>{{ t('paid') }}</span><span class="mono">{{ inv.paid|money }}</span></div>
+          <div class="totals-row"><span>{{ t('remaining') }}</span><span class="mono">{{ remaining|money }}</span></div>
+        </div>
+        {% if inv.notes %}
+        <div class="tiny muted" style="margin-top:12px"><b>{{ t('notes') }}:</b> {{ inv.notes }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="stack">
+    {% if remaining > 0 and inv.status != 'cancelled' %}
+    <div class="card" id="pay">
+      <div class="card-head"><span class="card-title">{{ t('collect_payment') }}</span></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('invoice_pay', iid=inv.id) }}" class="stack">
+          <div class="field">
+            <label class="label" for="amount">{{ t('payment_amount') }}</label>
+            <input class="input mono" id="amount" name="amount" type="number" step="any"
+                   value="{{ remaining }}" max="{{ remaining }}">
+          </div>
+          <div class="field">
+            <label class="label" for="treasury_id">{{ t('treasury') }}</label>
+            <select class="select" id="treasury_id" name="treasury_id">
+              {% for treasury_row in treasuries %}
+              <option value="{{ treasury_row.id }}">{{ treasury_row.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="vdate">{{ t('date') }}</label>
+            <input class="input" id="vdate" name="vdate" type="date" value="{{ now }}">
+          </div>
+          <button class="btn btn-primary" type="submit">{{ icon('wallet')|safe }} {{ t('pay_now') }}</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('vouchers') }}</span></div>
+      <div class="table-wrap">
+        <table class="table table-sm">
+          <tbody>
+            {% for payment in payments %}
+            <tr>
+              <td><a class="mono-sm" href="{{ url_for('voucher_print', vid=payment.id) }}">{{ payment.number }}</a>
+                <div class="tiny muted">{{ payment.vdate }}</div></td>
+              <td class="num">{{ payment.amount|money }}</td>
+              <td class="act"><span class="badge b-ok">{{ t('receipt') if payment.vtype == 'receipt' else t('payment') }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td class="muted tiny">{{ t('no_data') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="section-label">{{ t('quick_actions') }}</div>
+        <div class="stack" style="gap:6px">
+          <a class="btn btn-block" href="{{ url_for('invoice_print', iid=inv.id) }}?size=a4">{{ icon('print')|safe }} {{ t('print_a4') }}</a>
+          <a class="btn btn-block" href="{{ url_for('invoice_print', iid=inv.id) }}?size=a5">{{ icon('print')|safe }} {{ t('print_a5') }}</a>
+          <a class="btn btn-block" href="{{ url_for('invoice_print', iid=inv.id) }}?size=thermal">{{ icon('print')|safe }} {{ t('print_thermal') }}</a>
+          <a class="btn btn-block" href="{{ url_for('report_statement') }}?ptype={{ 'customer' if inv.party_type == 'customer' else 'supplier' }}&amp;pid={{ inv.party_id }}">{{ icon('file-text')|safe }} {{ t('statement') }}</a>
+          {% if inv.status != 'cancelled' %}
+          <form method="post" action="{{ url_for('invoice_cancel', iid=inv.id) }}" data-confirm="{{ t('invoice_cancel_confirm') }}">
+            <button class="btn btn-danger btn-block" type="submit">{{ icon('x')|safe }} {{ t('cancelled') }}</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'print_base.html' %}
+{% block toolbar %}
+<a class="btn" href="{{ url_for('sale_orders' if order.otype == 'sale' else 'purchase_orders') }}">{{ t('back') }}</a>
+<form method="post" action="{{ url_for('order_convert', oid=order.id) }}" style="display:inline">
+  <button class="btn btn-primary" type="submit">{{ t('convert_to_invoice') }}</button>
+</form>
+{% endblock %}
+{% block doc %}
+<div class="sheet-head">
+  <div class="sheet-company">
+    {% if company.logo %}<img class="sheet-logo" src="/uploads/{{ company.logo }}" alt="">{% endif %}
+    <h2>{{ company.name or 'Sanadex.wanis.online' }}</h2>
+    <p>{{ company.address or '' }}{% if company.phone %} · {{ company.phone }}{% endif %}</p>
+  </div>
+  <div class="doc-title">
+    <h3>{{ t('sale_orders' if order.otype == 'sale' else 'purchase_orders') }}</h3>
+    <div class="doc-no">{{ t('order_no') }}: {{ order.number }}</div>
+    <div class="doc-meta">{{ t('order_date') }}: {{ order.odate }}</div>
+    {% if order.due_date %}<div class="doc-meta">{{ t('due_date') }}: {{ order.due_date }}</div>{% endif %}
+  </div>
+</div>
+<div class="party-bar">
+  <div><div class="k">{{ t('customer' if order.otype == 'sale' else 'supplier') }}</div>
+    <div><b>{{ party.name or '—' }}</b></div><div>{{ party.phone or '' }}</div></div>
+  <div><div class="k">{{ t('status') }}</div>
+    <div>{{ t('order_status_done' if order.status == 'done' else 'order_status_pending') }}</div></div>
+</div>
+<table class="items-table">
+  <thead><tr><th style="width:28px">#</th><th>{{ t('item') }}</th><th>{{ t('unit') }}</th>
+    <th style="width:64px">{{ t('qty') }}</th><th style="width:86px">{{ t('price') }}</th>
+    <th style="width:96px">{{ t('total') }}</th></tr></thead>
+  <tbody>
+    {% for line in lines %}
+    <tr><td>{{ loop.index }}</td><td>{{ line.item_name }}</td><td>{{ line.unit_name or '—' }}</td>
+      <td class="num">{{ line.qty|num }}</td><td class="num">{{ line.price|money }}</td>
+      <td class="num">{{ (line.qty * line.price)|money }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="totals"><div class="totals-row grand"><span>{{ t('total') }}</span><span>{{ total|money }}</span></div></div>
+{% if order.notes %}<div class="terms">{{ order.notes }}</div>{% endif %}
+<div class="signatures"><div><div class="line">{{ t('signature_receiver') }}</div></div>
+  <div><div class="line">{{ t('signature_accountant') }}</div></div></div>
+{% endblock %}

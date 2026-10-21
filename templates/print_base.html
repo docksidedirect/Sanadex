@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }} · Sanadex.wanis.online</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css?v=4">
+</head>
+<body class="print-body">
+<div class="sheet {{ size|default('a4') }}">
+{% block doc %}{% endblock %}
+</div>
+<div class="print-toolbar no-print">
+  <button class="btn btn-primary" type="button" data-print>{{ icon('print')|safe }} {{ t('print') }}</button>
+  {% block toolbar %}{% endblock %}
+  <a class="btn" href="{{ url_for('dashboard') }}">{{ t('back') }}</a>
+</div>
+<script src="/static/app.js?v=4"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

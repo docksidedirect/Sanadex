@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('sale_invoices' if itype == 'sale' else 'purchase_invoices') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" id="invoiceForm" class="stack"
+      action="{{ url_for('sale_invoice_new' if itype == 'sale' else 'purchase_invoice_new') }}">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('new_sale_invoice' if itype == 'sale' else 'new_purchase_invoice') }}</span>
+      <div class="card-actions">
+        <span class="badge b-neutral mono">{{ t('invoice_no') }}: {{ prefill.number or '—' }}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-4 field">
+          <label class="label" for="party">{{ t('customer' if itype == 'sale' else 'supplier') }}</label>
+          <select class="select" id="party" name="party_id">
+            <option value="">{{ t('select') }}</option>
+            {% for party in parties %}
+            <option value="{{ party.id }}" data-tier="{{ party.tier_percent }}" data-balance="{{ party.balance }}"
+                    {{ 'selected' if prefill.get('party_id')|string == party.id|string }}>{{ party.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="help" id="partyHint"></span>
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="store">{{ t('store') }}</label>
+          <select class="select" id="store" name="store_id">
+            {% for store in stores %}
+            <option value="{{ store.id }}" {{ 'selected' if (prefill.get('store_id') or default_store)|string == store.id|string }}>{{ store.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="treasury">{{ t('treasury') }}</label>
+          <select class="select" id="treasury" name="treasury_id">
+            <option value="">{{ t('none') }}</option>
+            {% for treasury in treasuries %}
+            <option value="{{ treasury.id }}" {{ 'selected' if (prefill.get('treasury_id') or default_treasury)|string == treasury.id|string }}>{{ treasury.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="span-2 field">
+          <label class="label" for="idate">{{ t('invoice_date') }}</label>
+          <input class="input" id="idate" type="date" name="idate" value="{{ prefill.get('idate') or now }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="due_date">{{ t('due_date') }}</label>
+          <input class="input" id="due_date" type="date" name="due_date" value="{{ prefill.get('due_date') or '' }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="ref">{{ t('reference') }}</label>
+          <input class="input" id="ref" name="ref" value="{{ prefill.get('ref') or '' }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="is_tax">{{ t('tax_invoice') }}</label>
+          <label class="check">
+            <input type="checkbox" name="is_tax" id="is_tax" {{ 'checked' if tax_percent > 0 }}>
+            <span>{{ t('tax_invoice') }}</span>
+          </label>
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="tax_percent">{{ t('tax_percent') }}</label>
+          <input class="input mono" id="tax_percent" type="number" step="any" name="tax_percent" value="{{ tax_percent }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('items') }}</span>
+      <div class="card-actions">
+        <div class="search-box" style="min-width:230px">
+          {{ icon('barcode')|safe }}
+          <input class="input" id="scan" placeholder="{{ t('scan_barcode') }} ⏎" autocomplete="off">
+        </div>
+        <button class="btn btn-sm" type="button" id="addLine">{{ icon('plus')|safe }} {{ t('add_line') }}</button>
+      </div>
+    </div>
+    <div class="lines-wrap">
+      <div class="lines" id="lines">
+        <div class="lines-head">
+          <span>{{ t('item') }}</span><span>{{ t('unit') }}</span><span>{{ t('qty') }}</span>
+          <span>{{ t('price') }}</span><span>{{ t('manual_price') }}</span><span>{{ t('expiry') }}</span>
+          <span class="txt-end">{{ t('total') }}</span><span></span>
+        </div>
+        <div class="lines-body"></div>
+      </div>
+    </div>
+    <div class="card-body" style="border-top:1px solid var(--line)">
+      <div class="grid grid-2">
+        <div class="field">
+          <label class="label" for="notes">{{ t('invoice_notes') }}</label>
+          <textarea class="textarea" id="notes" name="notes" style="min-height:104px">{{ prefill.get('notes') or '' }}</textarea>
+        </div>
+        <div class="stack" style="gap:10px">
+          <div class="row">
+            <div class="field" style="flex:1">
+              <label class="label" for="discount">{{ t('discount_extra') }}</label>
+              <input class="input mono" id="discount" type="number" step="any" name="discount"
+                     value="{{ prefill.get('discount') or 0 }}">
+            </div>
+            <div class="field" style="flex:1">
+              <label class="label" for="paid">{{ t('cash_received') }}</label>
+              <input class="input mono" id="paid" type="number" step="any" name="paid"
+                     value="{{ prefill.get('paid') or 0 }}">
+            </div>
+          </div>
+          <div class="card" style="background:var(--surface-2)">
+            <div class="card-body tight">
+              <div class="totals-row"><span>{{ t('subtotal') }}</span><span class="mono" id="sumSubtotal">0.00</span></div>
+              <div class="totals-row"><span>{{ t('discount') }}</span><span class="mono" id="sumDiscount">0.00</span></div>
+              <div class="totals-row"><span>{{ t('tax') }}</span><span class="mono" id="sumTax">0.00</span></div>
+              <div class="totals-row grand"><span>{{ t('net') }}</span><span class="mono" id="sumNet">0.00</span></div>
+              <div class="totals-row"><span>{{ t('remaining') }}</span><span class="mono" id="sumRemaining">0.00</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn btn-primary btn-lg" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+        <a class="btn btn-ghost" href="{{ url_for('sale_invoices' if itype == 'sale' else 'purchase_invoices') }}">{{ t('cancel') }}</a>
+        <span class="spacer"></span>
+        <span class="tiny muted">{{ t('tip_scan') }}</span>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var ITEMS = {{ items_json|safe }};
+  var PARTIES = {{ parties_json|safe }};
+  var OFFERS = {{ offers|safe }};
+  var IS_SALE = {{ 'true' if itype == 'sale' else 'false' }};
+  var PRE = {{ prefill_json|safe }};
+  var body = document.querySelector('#lines .lines-body');
+  var partySel = document.getElementById('party');
+  var partyHint = document.getElementById('partyHint');
+
+  function itemById(id) { return ITEMS.filter(function (i) { return String(i.id) === String(id); })[0]; }
+  function partyById(id) { return PARTIES.filter(function (p) { return String(p.id) === String(id); })[0]; }
+  function fmt(n) { return (parseFloat(n) || 0).toFixed(2); }
+  function offerFor(itemId) {
+    var value = OFFERS[String(itemId)];
+    if (value === undefined) value = OFFERS.all;
+    return parseFloat(value || 0) || 0;
+  }
+  function tierPercent() {
+    var party = partyById(partySel.value);
+    return party ? parseFloat(party.tier_percent || 0) || 0 : 0;
+  }
+  function basePrice(item, unit) {
+    if (!item) return 0;
+    var price = IS_SALE ? (unit.sale_price || 0) : (unit.purchase_price || 0);
+    if (!price) price = IS_SALE ? (item.sale_price || 0) : (item.purchase_price || 0);
+    return parseFloat(price) || 0;
+  }
+  function computedPrice(item, unit) {
+    var price = basePrice(item, unit);
+    if (!IS_SALE) return price;
+    price = price * (1 - tierPercent() / 100);
+    price = price * (1 - offerFor(item ? item.id : 0) / 100);
+    return Math.round(price * 100) / 100;
+  }
+  function esc(text) { return String(text == null ? '' : text).replace(/</g, '&lt;'); }
+
+  function addRow(data) {
+    data = data || {};
+    var tr = document.createElement('div');
+    tr.className = 'line-row';
+    tr.innerHTML =
+      '<div><select class="select" name="item_id"></select></div>' +
+      '<div><select class="select" name="unit_id"></select></div>' +
+      '<div><input class="input mono" type="number" step="any" min="0" name="qty" value="' + (data.qty || 1) + '"></div>' +
+      '<div><input class="input mono price" type="number" step="any" name="price" value=""></div>' +
+      '<div><label class="check"><input type="checkbox" name="manual" value="1" ' + (data.manual ? 'checked' : '') + '><span>manual</span></label></div>' +
+      '<div><input class="input" type="date" name="expiry" value="' + (data.expiry || '') + '"></div>' +
+      '<div class="line-total">0.00</div>' +
+      '<div><button class="btn btn-sm btn-ghost" type="button" data-remove title="remove">&times;</button></div>';
+    body.appendChild(tr);
+    var itemSelect = tr.querySelector('[name=item_id]');
+    itemSelect.innerHTML = '<option value="">—</option>' + ITEMS.map(function (item) {
+      return '<option value="' + item.id + '">' + esc(item.name + (item.code ? ' · ' + item.code : '')) + '</option>';
+    }).join('');
+    if (data.item_id) itemSelect.value = data.item_id;
+    fillUnits(tr, data.unit_id);
+    if (data.manual && data.price) tr.querySelector('[name=price]').value = data.price;
+    recalcRow(tr);
+    recalcTotals();
+    return tr;
+  }
+
+  function fillUnits(tr, wanted) {
+    var item = itemById(tr.querySelector('[name=item_id]').value);
+    var unitSelect = tr.querySelector('[name=unit_id]');
+    var units = item ? item.units : [];
+    unitSelect.innerHTML = units.map(function (unit) {
+      var label = unit.name + (unit.factor && unit.factor !== 1 ? ' ×' + unit.factor : '');
+      return '<option value="' + unit.id + '">' + esc(label) + '</option>';
+    }).join('') || '<option value="">—</option>';
+    if (wanted) unitSelect.value = wanted;
+    if (!wanted) {
+      var base = units.filter(function (u) { return parseFloat(u.factor) === 1; })[0] || units[0];
+      if (base) unitSelect.value = base.id;
+    }
+    autoPrice(tr);
+  }
+
+  function currentUnit(tr) {
+    var item = itemById(tr.querySelector('[name=item_id]').value);
+    var unitId = tr.querySelector('[name=unit_id]').value;
+    var unit = item ? (item.units.filter(function (u) { return String(u.id) === String(unitId); })[0] || {}) : {};
+    return { item: item, unit: unit };
+  }
+  function isManual(tr) { return tr.querySelector('[name=manual]').checked; }
+  function autoPrice(tr) {
+    var pair = currentUnit(tr);
+    if (!pair.item || isManual(tr)) return;
+    tr.querySelector('[name=price]').value = computedPrice(pair.item, pair.unit).toFixed(2);
+  }
+  function recalcRow(tr) {
+    var qty = parseFloat(tr.querySelector('[name=qty]').value) || 0;
+    var price = parseFloat(tr.querySelector('[name=price]').value) || 0;
+    var total = Math.round(qty * price * 100) / 100;
+    tr.querySelector('.line-total').textContent = fmt(total);
+    return total;
+  }
+  function recalcTotals() {
+    var subtotal = 0;
+    [].forEach.call(body.querySelectorAll('.line-row'), function (tr) { subtotal += recalcRow(tr); });
+    var discount = parseFloat(document.getElementById('discount').value) || 0;
+    var taxable = Math.max(subtotal - discount, 0);
+    var taxOn = document.getElementById('is_tax').checked;
+    var rate = parseFloat(document.getElementById('tax_percent').value) || 0;
+    var tax = taxOn ? Math.round(taxable * rate) / 100 : 0;
+    var net = Math.round((taxable + tax) * 100) / 100;
+    var paid = Math.min(parseFloat(document.getElementById('paid').value) || 0, net);
+    document.getElementById('sumSubtotal').textContent = fmt(subtotal);
+    document.getElementById('sumDiscount').textContent = fmt(discount);
+    document.getElementById('sumTax').textContent = fmt(tax);
+    document.getElementById('sumNet').textContent = fmt(net);
+    document.getElementById('sumRemaining').textContent = fmt(net - paid);
+  }
+  function updatePartyHint() {
+    var party = partyById(partySel.value);
+    if (!party) { partyHint.textContent = ''; return; }
+    var parts = [];
+    if (party.phone) parts.push(party.phone);
+    if (party.tier_percent) parts.push('tier ' + party.tier_percent + '%');
+    parts.push('balance ' + fmt(party.balance));
+    partyHint.textContent = parts.join(' · ');
+  }
+
+  body.addEventListener('change', function (event) {
+    var row = event.target.closest('.line-row');
+    if (!row) return;
+    if (event.target.name === 'item_id') fillUnits(row);
+    if (event.target.name === 'unit_id' || event.target.name === 'manual') autoPrice(row);
+    recalcTotals();
+  });
+  body.addEventListener('input', function (event) {
+    if (event.target.name === 'price' || event.target.name === 'qty') recalcTotals();
+  });
+  body.addEventListener('click', function (event) {
+    if (event.target.closest('[data-remove]')) {
+      event.target.closest('.line-row').remove();
+      recalcTotals();
+    }
+  });
+  document.getElementById('addLine').addEventListener('click', function () { addRow(); });
+  document.getElementById('discount').addEventListener('input', recalcTotals);
+  document.getElementById('paid').addEventListener('input', recalcTotals);
+  document.getElementById('is_tax').addEventListener('change', recalcTotals);
+  document.getElementById('tax_percent').addEventListener('input', recalcTotals);
+  partySel.addEventListener('change', function () {
+    updatePartyHint();
+    [].forEach.call(body.querySelectorAll('.line-row'), function (row) { autoPrice(row); });
+    recalcTotals();
+  });
+
+  var scan = document.getElementById('scan');
+  scan.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    var code = scan.value.trim();
+    scan.value = '';
+    if (!code) return;
+    var found = null;
+    ITEMS.forEach(function (item) {
+      if (String(item.code) === code) found = { item: item, unit: null };
+      item.units.forEach(function (unit) {
+        if (String(unit.barcode) === code) found = { item: item, unit: unit };
+      });
+    });
+    if (!found) {
+      scan.style.borderColor = 'var(--danger)';
+      setTimeout(function () { scan.style.borderColor = ''; }, 900);
+      return;
+    }
+    var existing = [].filter.call(body.querySelectorAll('.line-row'), function (tr) {
+      return String(tr.querySelector('[name=item_id]').value) === String(found.item.id);
+    })[0];
+    if (existing) {
+      var qtyInput = existing.querySelector('[name=qty]');
+      qtyInput.value = (parseFloat(qtyInput.value) || 0) + 1;
+      recalcTotals();
+    } else {
+      addRow({ item_id: found.item.id, unit_id: found.unit ? found.unit.id : '', qty: 1 });
+    }
+  });
+
+  if (PRE && PRE.lines && PRE.lines.length) {
+    if (PRE.party_id) partySel.value = PRE.party_id;
+    if (PRE.store_id) document.getElementById('store').value = PRE.store_id;
+    if (PRE.treasury_id) document.getElementById('treasury').value = PRE.treasury_id;
+    PRE.lines.forEach(function (line) { addRow(line); });
+  } else {
+    addRow();
+  }
+  updatePartyHint();
+  recalcTotals();
+})();
+</script>
+{% endblock %}

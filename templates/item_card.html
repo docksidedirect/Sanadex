@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="?item={{ item_id }}&amp;export=1">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<button class="btn" type="button" data-print>{{ icon('print')|safe }} {{ t('print_report') }}</button>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:14px">
+  <div class="toolbar">
+    <form method="get">
+      <select class="select" name="item" data-autosubmit style="max-width:320px">
+        {% for row in items_list %}
+        <option value="{{ row.id }}" {{ 'selected' if row.id == item_id }}>{{ row.name }}{% if row.code %} · {{ row.code }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <span class="spacer"></span>
+      <span class="tiny muted">{{ t('item_card_hint') }}</span>
+    </form>
+  </div>
+</div>
+
+{% if item %}
+<div class="kpis" style="margin-bottom:16px">
+  <div class="kpi"><span class="kpi-label">{{ t('item') }}</span><span class="kpi-value" style="font-size:16px">{{ item.name }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('stock') }}</span><span class="kpi-value">{{ balance|num }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('purchase_price') }}</span><span class="kpi-value">{{ item.purchase_price|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('sale_price') }}</span><span class="kpi-value">{{ item.sale_price|money }}</span></div>
+</div>
+
+<div class="grid grid-side">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('ref_type') }}</span></div>
+    <div class="table-wrap">
+      <table class="table table-sm">
+        <thead><tr><th>{{ t('date') }}</th><th>{{ t('store') }}</th><th>{{ t('ref_type') }}</th>
+          <th class="num">{{ t('qty') }}</th><th class="num">{{ t('balance') }}</th></tr></thead>
+        <tbody>
+          {% for row in movements %}
+          <tr>
+            <td class="mono-sm nowrap">{{ row.mdate }}</td>
+            <td>{{ row.store_name or '—' }}</td>
+            <td><span class="badge {{ 'b-ok' if row.qty > 0 else 'b-warn' }}">{{ row.ref_type }}</span></td>
+            <td class="num">{{ row.qty|num }}</td>
+            <td class="num strong">{{ row.balance|num }}</td>
+          </tr>
+          {% else %}<tr><td colspan="5" class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('stores') }}</span></div>
+    <table class="table table-sm">
+      <tbody>
+        {% for row in stores %}
+        <tr><td>{{ row.name }}</td><td class="num">{{ row.qty|num }}</td></tr>
+        {% else %}<tr><td class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

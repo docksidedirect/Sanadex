@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="?export=1">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<a class="btn" href="{{ url_for('installments') }}">{{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<div class="kpis" style="margin-bottom:16px">
+  <div class="kpi"><span class="kpi-label">{{ t('overdue_installments') }}</span>
+    <span class="kpi-value" style="color:var(--danger)">{{ total_overdue|money }}</span>
+    <span class="kpi-foot">{{ overdue|length }} {{ t('rows') }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('due_installments') }}</span>
+    <span class="kpi-value">{{ upcoming|length }}</span></div>
+</div>
+<div class="card">
+  <div class="card-head"><span class="card-title">{{ t('overdue_installments') }}</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ t('customer') }}</th><th>{{ t('phone') }}</th><th>{{ t('due_date') }}</th>
+        <th class="num">{{ t('installment_amount') }}</th><th class="act"></th></tr></thead>
+      <tbody>
+        {% for row in overdue %}
+        <tr class="warn-row">
+          <td>{{ row.customer_name }}</td><td class="tiny">{{ row.phone }}</td>
+          <td class="mono-sm">{{ row.due_date }}</td>
+          <td class="num">{{ row.amount|money }}</td>
+          <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('installment_plan_view', pid=row.plan_id) }}">{{ t('view') }}</a></td>
+        </tr>
+        {% else %}<tr><td colspan="5" class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="card" style="margin-top:16px">
+  <div class="card-head"><span class="card-title">{{ t('due_installments') }}</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ t('customer') }}</th><th>{{ t('due_date') }}</th>
+        <th class="num">{{ t('installment_amount') }}</th><th class="act"></th></tr></thead>
+      <tbody>
+        {% for row in upcoming %}
+        <tr><td>{{ row.customer_name }}</td><td class="mono-sm">{{ row.due_date }}</td>
+          <td class="num">{{ row.amount|money }}</td>
+          <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('installment_plan_view', pid=row.plan_id) }}">{{ t('view') }}</a></td></tr>
+        {% else %}<tr><td colspan="4" class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

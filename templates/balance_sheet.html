@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="?export=1">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<button class="btn" type="button" data-print>{{ icon('print')|safe }} {{ t('print_report') }}</button>
+{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('assets') }}</span>
+      <div class="card-actions"><span class="badge b-ok">{{ assets|money }}</span></div></div>
+    <table class="table table-sm">
+      <tbody>
+        <tr><td>{{ t('cash_balance') }}</td><td class="num">{{ snapshot.cash|money }}</td></tr>
+        <tr><td>{{ t('inventory_value') }}</td><td class="num">{{ snapshot.inventory|money }}</td></tr>
+        <tr><td>{{ t('receivables') }}</td><td class="num">{{ snapshot.receivables|money }}</td></tr>
+        {% for row in groups.asset %}{% if row.balance %}
+        <tr><td class="tiny">{{ row.code }} · {{ row.name }}</td><td class="num">{{ row.balance|money }}</td></tr>
+        {% endif %}{% endfor %}
+      </tbody>
+      <tfoot><tr><td>{{ t('total') }}</td><td class="num">{{ assets|money }}</td></tr></tfoot>
+    </table>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('liabilities') }}</span>
+        <div class="card-actions"><span class="badge b-warn">{{ liabilities|money }}</span></div></div>
+      <table class="table table-sm">
+        <tbody>
+          <tr><td>{{ t('payables') }}</td><td class="num">{{ snapshot.payables|money }}</td></tr>
+          <tr><td>{{ t('tax_due') }}</td><td class="num">{{ snapshot.tax|money }}</td></tr>
+          {% for row in groups.liability %}{% if row.balance %}
+          <tr><td class="tiny">{{ row.code }} · {{ row.name }}</td><td class="num">{{ (-row.balance)|money }}</td></tr>
+          {% endif %}{% endfor %}
+        </tbody>
+        <tfoot><tr><td>{{ t('total') }}</td><td class="num">{{ liabilities|money }}</td></tr></tfoot>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('equity') }}</span>
+        <div class="card-actions"><span class="badge b-info">{{ (equity_ledger + retained)|money }}</span></div></div>
+      <table class="table table-sm">
+        <tbody>
+          <tr><td>{{ t('equity') }} ({{ t('accounts') }})</td><td class="num">{{ equity_ledger|money }}</td></tr>
+          <tr><td>{{ t('retained_earnings') }}</td><td class="num">{{ retained|money }}</td></tr>
+        </tbody>
+        <tfoot><tr><td>{{ t('total') }} {{ t('liabilities') }} + {{ t('equity') }}</td>
+          <td class="num">{{ total_liab_equity|money }}</td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-body row between">
+    <div>
+      <div class="section-label">{{ t('difference') }}</div>
+      <div class="mono strong">{{ (assets - total_liab_equity)|money }}</div>
+    </div>
+    <div class="tiny muted" style="max-width:60ch">{{ t('report_pl_sub') }}</div>
+  </div>
+</div>
+{% endblock %}

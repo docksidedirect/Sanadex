@@ -1,0 +1,91 @@
+{% extends 'print_base.html' %}
+{% block toolbar %}
+<a class="btn {{ 'btn-ink' if size == 'a4' }}" href="?size=a4">{{ t('print_a4') }}</a>
+<a class="btn {{ 'btn-ink' if size == 'a5' }}" href="?size=a5">{{ t('print_a5') }}</a>
+<a class="btn {{ 'btn-ink' if size == 'thermal' }}" href="?size=thermal">{{ t('print_thermal') }}</a>
+<a class="btn" href="{{ url_for('invoice_view', iid=inv.id) }}">{{ t('details') }}</a>
+{% endblock %}
+{% block doc %}
+<div class="sheet-head">
+  <div class="sheet-company">
+    {% if company.logo %}<img class="sheet-logo" src="/uploads/{{ company.logo }}" alt="">{% endif %}
+    <h2>{{ company.name or 'Sanadex.wanis.online' }}</h2>
+    <p>{{ company.address or '' }}{% if company.phone %} · {{ company.phone }}{% endif %}</p>
+    {% if company.tax_number and inv.is_tax %}<p>{{ t('tax_number') }}: {{ company.tax_number }}</p>{% endif %}
+    {% if company.cr_number %}<p>{{ t('cr_number') }}: {{ company.cr_number }}</p>{% endif %}
+  </div>
+  <div class="doc-title">
+    <h3>{{ t('sales_invoice_tax' if inv.itype == 'sale' and inv.is_tax else ('sales_invoice' if inv.itype == 'sale' else 'purchase_invoice')) }}</h3>
+    <div class="doc-no">{{ t('invoice_no') }}: {{ inv.number }}</div>
+    <div class="doc-meta">{{ t('invoice_date') }}: {{ inv.idate }}</div>
+    {% if inv.due_date %}<div class="doc-meta">{{ t('due_date') }}: {{ inv.due_date }}</div>{% endif %}
+    {% if inv.status == 'cancelled' %}<span class="status-stamp">{{ t('cancelled') }}</span>
+    {% elif inv.status == 'credit' %}<span class="status-stamp credit">{{ t('credit') }}</span>
+    {% elif inv.status == 'paid' %}<span class="status-stamp paid">{{ t('paid') }}</span>{% endif %}
+  </div>
+</div>
+
+<div class="party-bar">
+  <div>
+    <div class="k">{{ t('customer' if inv.party_type == 'customer' else 'supplier') }}</div>
+    <div><b>{{ party.name or '—' }}</b></div>
+    <div>{{ party.phone or '' }} {{ party.address or '' }}</div>
+  </div>
+  <div>
+    <div class="k">{{ t('store') }}</div>
+    <div>{{ store.name or '—' }}</div>
+    <div class="k" style="margin-top:5px">{{ t('treasury') }}</div>
+    <div>{{ treasury.name or '—' }}</div>
+  </div>
+  <div>
+    <div class="k">{{ t('reference') }}</div>
+    <div>{{ inv.ref or '—' }}</div>
+    <div class="k" style="margin-top:5px">{{ t('created_by') }}</div>
+    <div>{{ user.full_name or user.username or '—' }}</div>
+  </div>
+</div>
+
+<table class="items-table">
+  <thead>
+    <tr>
+      <th style="width:28px">#</th>
+      <th>{{ t('item') }}</th>
+      <th>{{ t('unit') }}</th>
+      <th style="width:60px">{{ t('qty') }}</th>
+      <th style="width:78px">{{ t('price') }}</th>
+      <th style="width:88px">{{ t('total') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in lines %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ line.item_name }}{% if line.item_code %} <span class="qr-note">({{ line.item_code }})</span>{% endif %}</td>
+      <td>{{ line.unit_name or '—' }}</td>
+      <td class="num">{{ line.qty|num }}</td>
+      <td class="num">{{ line.price|money }}</td>
+      <td class="num">{{ line.total|money }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="totals-row"><span>{{ t('subtotal') }}</span><span>{{ inv.subtotal|money }}</span></div>
+  {% if inv.discount %}<div class="totals-row"><span>{{ t('discount') }}</span><span>−{{ inv.discount|money }}</span></div>{% endif %}
+  {% if inv.tax %}<div class="totals-row"><span>{{ t('tax') }} ({{ inv.tax_percent|num }}%)</span><span>{{ inv.tax|money }}</span></div>{% endif %}
+  <div class="totals-row grand"><span>{{ t('net') }}</span><span>{{ inv.net|money }} {{ company.currency }}</span></div>
+  <div class="totals-row"><span>{{ t('paid') }}</span><span>{{ inv.paid|money }}</span></div>
+  <div class="totals-row"><span>{{ t('remaining') }}</span><span>{{ (inv.net - inv.paid)|money }}</span></div>
+</div>
+
+{% if invoice_terms or company.invoice_terms %}
+<div class="terms">{{ company.invoice_terms }}</div>
+{% endif %}
+{% if company.receipt_footer %}<div class="terms">{{ company.receipt_footer }}</div>{% endif %}
+
+<div class="signatures">
+  <div><div class="line">{{ t('signature_receiver') }}</div></div>
+  <div><div class="line">{{ t('signature_accountant') }}</div></div>
+</div>
+{% endblock %}

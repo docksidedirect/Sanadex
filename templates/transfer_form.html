@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('transfers') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" action="{{ url_for('transfer_new') }}" class="stack">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('new_transfer') }}</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-4 field">
+          <label class="label" for="from_store">{{ t('from_store') }}</label>
+          <select class="select" id="from_store" name="from_store">
+            {% for store in stores %}<option value="{{ store.id }}">{{ store.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="to_store">{{ t('to_store') }}</label>
+          <select class="select" id="to_store" name="to_store">
+            {% for store in stores %}<option value="{{ store.id }}" {{ 'selected' if loop.index == 2 }}>{{ store.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="tdate">{{ t('date') }}</label>
+          <input class="input" id="tdate" type="date" name="tdate" value="{{ now }}">
+        </div>
+        <div class="span-12 field">
+          <label class="label" for="note">{{ t('notes') }}</label>
+          <input class="input" id="note" name="note">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('items') }}</span>
+      <div class="card-actions">
+        <button class="btn btn-sm" type="button" id="addLine">{{ icon('plus')|safe }} {{ t('add_line') }}</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table table-fixed" id="lines">
+        <thead><tr><th style="min-width:240px">{{ t('item') }}</th><th style="width:150px">{{ t('unit') }}</th>
+          <th style="width:110px">{{ t('qty') }}</th><th class="num" style="width:120px">{{ t('stock') }}</th>
+          <th style="width:44px"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card-body row">
+      <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('transfers') }}">{{ t('cancel') }}</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var ITEMS = {{ items_list|tojson }};
+  var UNITS = {{ units|tojson }};
+  var body = document.querySelector('#lines tbody');
+  function esc(text) { return String(text == null ? '' : text).replace(/</g, '&lt;'); }
+  function addRow() {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><select class="select" name="item_id"></select></td>' +
+      '<td><select class="select" name="unit_id"></select></td>' +
+      '<td><input class="input mono" type="number" step="any" name="qty" value="1"></td>' +
+      '<td class="num stock-cell">—</td>' +
+      '<td class="act"><button class="btn btn-sm btn-ghost" type="button" data-remove>&times;</button></td>';
+    body.appendChild(tr);
+    var select = tr.querySelector('[name=item_id]');
+    select.innerHTML = '<option value="">—</option>' + ITEMS.map(function (item) {
+      return '<option value="' + item.id + '">' + esc(item.name) + '</option>';
+    }).join('');
+    fillUnits(tr);
+    return tr;
+  }
+  function fillUnits(tr) {
+    var id = tr.querySelector('[name=item_id]').value;
+    var list = UNITS.filter(function (unit) { return String(unit.item_id) === String(id); });
+    var select = tr.querySelector('[name=unit_id]');
+    select.innerHTML = list.map(function (unit) {
+      return '<option value="' + unit.id + '">' + esc(unit.name) + '</option>';
+    }).join('') || '<option value="">—</option>';
+    var item = ITEMS.filter(function (i) { return String(i.id) === String(id); })[0];
+    tr.querySelector('.stock-cell').textContent = item ? item.stock : '—';
+  }
+  body.addEventListener('change', function (event) {
+    if (event.target.name === 'item_id') fillUnits(event.target.closest('tr'));
+  });
+  body.addEventListener('click', function (event) {
+    if (event.target.closest('[data-remove]')) event.target.closest('tr').remove();
+  });
+  document.getElementById('addLine').addEventListener('click', addRow);
+  if (document.querySelectorAll('select[name=to_store] option').length > 1) {
+    document.getElementById('to_store').selectedIndex = 1;
+  }
+  addRow();
+})();
+</script>
+{% endblock %}

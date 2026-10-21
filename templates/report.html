@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="?{{ request.query_string|default('') }}{% if request.query_string %}&amp;{% endif %}export=1">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<button class="btn" type="button" data-print>{{ icon('print')|safe }} {{ t('print_report') }}</button>
+{% endblock %}
+{% block content %}
+{% if show_dates %}
+<div class="card" style="margin-bottom:14px">
+  <div class="toolbar">
+    <form method="get">
+      <span class="tiny muted">{{ t('report_params') }}</span>
+      <input class="input" type="date" name="d1" value="{{ d1 }}" style="max-width:160px">
+      <input class="input" type="date" name="d2" value="{{ d2 }}" style="max-width:160px">
+      {% for key, value in query.items() if key not in ('d1', 'd2', 'export', 'page') %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
+      <button class="btn btn-sm" type="submit">{{ icon('filter')|safe }} {{ t('apply') }}</button>
+      <span class="spacer"></span>
+      <span class="tiny muted">{{ t('showing') }} {{ rows|length }} {{ t('rows') }}</span>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table table-zebra">
+      <thead>
+        <tr>{% for col in columns %}<th class="{{ 'num' if col.align == 'end' }}">{{ t(col.label) }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for col in columns %}
+          {% set value = row.get(col.key) %}
+          <td class="{{ 'num' if col.align == 'end' }}">
+            {% if col.kind == 'money' %}{{ value|money }}
+            {% elif col.kind == 'int' %}{{ value|num }}
+            {% elif col.kind == 'pct' %}{{ value|pct }}
+            {% else %}{{ value if value is not none else '' }}{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ columns|length }}"><div class="empty">{{ icon('chart')|safe }}<b>{{ t('no_data') }}</b>
+          <p>{{ t('report_params') }}</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+      {% if totals and rows %}
+      <tfoot>
+        <tr>
+          {% for col in columns %}
+          {% set value = totals.get(col.key) %}
+          <td class="{{ 'num' if col.align == 'end' }}">{{ value|money if col.kind == 'money' and value is not none else (value|num if value is not none else '') }}</td>
+          {% endfor %}
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+  {% if notes %}<div class="card-body tiny muted">{{ notes }}</div>{% endif %}
+</div>
+{% endblock %}

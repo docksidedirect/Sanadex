@@ -1,0 +1,17 @@
+{% extends 'print_base.html' %}
+{% block doc %}
+<div class="labels">
+  {% for label in labels %}
+    {% for copy in range(label.count) %}
+    <div class="bc-label {{ size }}">
+      <div class="bc-name">{{ label.name }}</div>
+      {{ barcode_svg(label.barcode or label.code, height=34 if size == 'small' else 46) | safe }}
+      <div class="bc-price">{{ label.price|money }}</div>
+    </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+{% endblock %}
+{% block toolbar %}
+<a class="btn" href="{{ url_for('barcode') }}">{{ t('back') }}</a>
+{% endblock %}

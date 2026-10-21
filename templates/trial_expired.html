@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}" data-theme="{{ theme }}" data-accent="{{ company.accent or 'clay' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t('license_trial_expired_title') }} · Sanadex.wanis.online</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css?v=4">
+</head>
+<body class="print-body" style="display:grid;place-items:center;min-height:100vh">
+<div class="card" style="max-width:600px;width:100%">
+  <div class="card-body" style="text-align:center;padding:34px 26px">
+    <div class="brand-mark" style="width:44px;height:44px;font-size:22px;margin:0 auto 12px">S</div>
+    <h1 class="page-title" style="font-size:22px">{{ t('license_trial_expired_title') }}</h1>
+    <p class="muted" style="max-width:46ch;margin:8px auto 16px">{{ t('license_trial_expired_msg') }}</p>
+    <div class="kv" style="justify-content:center;text-align:start;display:inline-grid">
+      <dt>{{ t('user') }}</dt><dd>{{ user.full_name or user.username }}</dd>
+      <dt>{{ t('license_trial_started') }}</dt>
+      <dd class="mono">{{ user.trial_started|stamp('%Y-%m-%d') if user.trial_started else '—' }}</dd>
+      <dt>{{ t('license_trial_days') }}</dt><dd class="mono">0</dd>
+    </div>
+    <div class="row" style="justify-content:center;margin-top:20px">
+      <a class="btn btn-primary" href="{{ url_for('logout') }}">{{ t('logout') }}</a>
+      <a class="btn" href="{{ url_for('profile') }}">{{ t('profile') }}</a>
+    </div>
+    <p class="tiny muted" style="margin-top:16px">{{ t('license_contact_admin') }}</p>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# Sanadex.wanis.online — systemd unit (Ubuntu / Debian VPS)
+#
+# 1. copy this file to /etc/systemd/system/sanadex.service
+# 2. adjust User / WorkingDirectory / paths
+# 3. systemctl daemon-reload && systemctl enable --now sanadex
+# 4. journalctl -u sanadex -f
+
+[Unit]
+Description=Sanadex.wanis.online business suite
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sanadex
+Group=sanadex
+WorkingDirectory=/opt/sanadex
+EnvironmentFile=/opt/sanadex/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=HOST=127.0.0.1
+Environment=PORT=8000
+Environment=WEB_THREADS=8
+ExecStart=/opt/sanadex/.venv/bin/python /opt/sanadex/run_prod.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+# graceful shutdown, then hard stop
+KillSignal=SIGTERM
+
+# hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/sanadex/data
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

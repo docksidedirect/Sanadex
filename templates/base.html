@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}" data-theme="{{ theme }}" data-accent="{{ company.accent or 'clay' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Sanadex.wanis.online — bilingual business management: sales, stock, cash, accounting, HR.">
+<title>{{ title }} · Sanadex.wanis.online</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css?v=4">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L20 7H6"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6h10v10H3z"/><path d="M13 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></symbol>
+<symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9h18l-2-5H5z"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.8 20h18.4z"/><path d="M12 10v4M12 17.5v.5"/></symbol>
+<symbol id="i-barcode" viewBox="0 0 24 24"><path d="M4 5v14M7 5v14M10 5v9M13 5v14M17 5v14M20 5v14"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0 5-5m-5 5-5-5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14h2"/></symbol>
+<symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M8 8h8M8 12h8"/></symbol>
+<symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 4v16m0 0 6-6m-6 6-6-6"/></symbol>
+<symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 20V4m0 0 6 6m-6-6-6 6"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16m0 0-6-6m6 6-6 6"/></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M20 12H4m0 0 6-6m-6 6 6 6"/></symbol>
+<symbol id="i-credit-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M6 2h8l5 5v15H6z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></symbol>
+<symbol id="i-percent" viewBox="0 0 24 24"><path d="m19 5-14 14"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.2 2.7-5 6-5s6 1.8 6 5"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 15c2.4.4 4 2.2 4 5"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h12a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><path d="M4 17h15M8 8h7"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-id" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.6-1.6 1.7-2.2 3-2.2s2.4.6 3 2.2M14 10h4M14 14h4"/></symbol>
+<symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V4h6v3M3 12h18"/></symbol>
+<symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 1 0 4 4L21 8l-3-3z"/><path d="m13 9-9 9 2 2 9-9"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4.5 4.5"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></symbol>
+<symbol id="i-chevrons-left" viewBox="0 0 24 24"><path d="m11 6-6 6 6 6M19 6l-6 6 6 6"/></symbol>
+<symbol id="i-chevrons-right" viewBox="0 0 24 24"><path d="m13 6 6 6-6 6M5 6l6 6-6 6"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="m14 5 4 4"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></symbol>
+<symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="1"/><path d="M7 17h10v4H7z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 5v6h-6"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 16V11a6 6 0 1 0-12 0v5l-2 3h16z"/><path d="M10 22h4"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="m12 3 9 9-9 9-9-9z"/><circle cx="12" cy="9" r="1"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 8l-4 4 4 4M6 12h9"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-package" viewBox="0 0 24 24"><path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 3v18"/><path d="M5 4h11l-2 4 2 4H5z"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l2 2M14 9l2 2"/></symbol>
+</defs></svg>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <a class="brand" href="{{ url_for('dashboard') }}">
+        <span class="brand-mark">S</span>
+        <span class="brand-text"><strong>Sanadex</strong><em>.wanis.online</em></span>
+      </a>
+      <button class="sb-toggle" type="button" data-toggle-sidebar
+              title="{{ t('collapse_sidebar') }}" aria-label="{{ t('collapse_sidebar') }}">
+        {{ icon('chevrons-left')|safe }}
+      </button>
+    </div>
+    <nav class="sb-nav" aria-label="{{ t('toggle_menu') }}">
+      {% for group in nav %}
+      <div class="nav-group">
+        <div class="nav-group-label">{{ icon(group.icon)|safe }}<span>{{ t(group.label) }}</span></div>
+        {% for item in group['items'] %}
+        <a class="nav-link {{ 'active' if active == item.route }}" href="{{ item.href }}"
+           title="{{ t(item.label) }}">{{ icon(item.icon)|safe }}<span class="nav-text">{{ t(item.label) }}</span></a>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </nav>
+    <div class="sb-foot">
+      <a class="sb-user" href="{{ url_for('profile') }}">
+        <span class="avatar">{{ (user.full_name or user.username or 'U')[0]|upper }}</span>
+        <span class="sb-user-meta"><b>{{ user.full_name or user.username }}</b><span>{{ t('profile') }}</span></span>
+      </a>
+      <div class="sb-links">
+        <a href="{{ url_for('set_lang', code=('en' if lang == 'ar' else 'ar')) }}" title="{{ t('language') }}">
+          {{ icon('globe')|safe }}<span>{{ 'EN' if lang == 'ar' else 'ع' }}</span></a>
+        <a href="{{ url_for('set_theme', name=('dark' if theme == 'light' else 'light')) }}" title="{{ t('theme') }}">
+          {{ icon('moon' if theme == 'light' else 'sun')|safe }}<span>{{ t('dark' if theme == 'light' else 'light') }}</span></a>
+        <a href="{{ url_for('logout') }}" title="{{ t('logout') }}">{{ icon('logout')|safe }}<span>{{ t('logout') }}</span></a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="scrim" data-close-nav></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="tb-menu" type="button" data-open-nav aria-label="{{ t('toggle_menu') }}">
+        {{ icon('menu')|safe }}
+      </button>
+      <button class="tb-collapse" type="button" data-toggle-sidebar aria-label="{{ t('collapse_sidebar') }}">
+        {{ icon('list')|safe }}
+      </button>
+      <div class="tb-crumb">
+        <span class="mono">Sanadex.wanis.online</span>
+        <span class="sep">/</span>
+        <b>{{ title }}</b>
+      </div>
+      <div class="tb-actions">
+        <button class="search-trigger" type="button" data-open-cmd>
+          {{ icon('search')|safe }}<span>{{ t('search_everything') }}</span><span class="kbd">Ctrl K</span>
+        </button>
+        <a class="lang-switch" href="{{ url_for('set_lang', code=('en' if lang == 'ar' else 'ar')) }}"
+           title="{{ t('language') }}">{{ 'EN' if lang == 'ar' else 'ع' }}</a>
+        <a class="theme-btn" href="{{ url_for('set_theme', name=('dark' if theme == 'light' else 'light')) }}"
+           title="{{ t('theme') }}">{{ icon('moon' if theme == 'light' else 'sun')|safe }}</a>
+        <div class="tb-user">
+          <span class="avatar">{{ (user.full_name or user.username or 'U')[0]|upper }}</span>
+          <span>{{ user.full_name or user.username }}</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      {% if lic and lic.state not in ('licensed', 'lifetime') %}
+      <div class="license-strip {{ 'is-danger' if lic.state == 'trial_expired' }}">
+        {{ icon('key')|safe }}
+        <span>{% if lic.state == 'trial_expired' %}{{ t('license_banner_user_expired') }}
+              {% else %}{{ t('license_banner_user_trial', days=lic.trial_days_left) }}{% endif %}</span>
+        {% if can('admin') %}
+        <a class="btn btn-sm" href="{{ url_for('license') }}">{{ t('license_manage') }}</a>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if flashes %}
+      <div class="flashes">
+        {% for flash in flashes %}
+        <div class="flash {{ flash.cat }}" data-auto>
+          {{ icon('check' if flash.cat == 'success' else ('info' if flash.cat == 'info' else 'alert'))|safe }}
+          <div>{{ flash.msg }}</div>
+          <button class="close" type="button" aria-label="{{ t('close') }}">&times;</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">{% block page_title %}{{ title }}{% endblock %}</h1>
+          {% if subtitle %}<p class="page-sub">{{ subtitle }}</p>{% endif %}
+        </div>
+        <div class="page-actions">{% block actions %}{% endblock %}</div>
+      </div>
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="foot">
+      <span>Sanadex.wanis.online</span><span class="dot"></span>
+      <span>{{ t('tagline_long') }}</span><span class="dot"></span>
+      <span class="mono tiny">v3.0</span>
+      <span class="spacer"></span>
+      <span>{{ t('keyboard_hint') }}</span>
+    </footer>
+  </div>
+</div>
+
+<div class="cmd" id="cmd" hidden
+     data-src="/api/search" data-empty="{{ t('no_results') }}"
+     data-pages="{{ t('search_everything') }}" data-items="{{ t('items') }}"
+     data-parties="{{ t('customers') }} / {{ t('suppliers') }}" data-invoices="{{ t('sales_invoices') }}">
+  <div class="cmd-backdrop"></div>
+  <div class="cmd-panel" role="dialog" aria-modal="true" aria-label="{{ t('quick_search') }}">
+    <input class="cmd-input" type="search" autocomplete="off" spellcheck="false"
+           placeholder="{{ t('search_placeholder') }}">
+    <div class="cmd-results"></div>
+    <div class="cmd-hint"><span>↑ ↓</span><span>Enter</span><span>Esc</span>
+      <span class="spacer"></span><span>{{ t('keyboard_hint') }}</span></div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=4"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

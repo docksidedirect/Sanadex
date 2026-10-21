@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('backup_restore') }}">{{ icon('database')|safe }} {{ t('settings_backup') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="stack">
+  <div class="card" id="company">
+    <div class="card-head"><span class="card-title">{{ t('settings_company') }}</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-6 field">
+          <label class="label" for="name">{{ t('company_name') }}</label>
+          <input class="input" id="name" name="name" value="{{ comp.name or '' }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="phone">{{ t('phone') }}</label>
+          <input class="input" id="phone" name="phone" value="{{ comp.phone or '' }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="email">{{ t('email') }}</label>
+          <input class="input" id="email" name="email" value="{{ comp.email or '' }}">
+        </div>
+        <div class="span-6 field">
+          <label class="label" for="address">{{ t('address') }}</label>
+          <input class="input" id="address" name="address" value="{{ comp.address or '' }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="tax_number">{{ t('tax_number') }}</label>
+          <input class="input" id="tax_number" name="tax_number" value="{{ comp.tax_number or '' }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="cr_number">{{ t('cr_number') }}</label>
+          <input class="input" id="cr_number" name="cr_number" value="{{ comp.cr_number or '' }}">
+        </div>
+        <div class="span-2 field">
+          <label class="label" for="currency">{{ t('currency') }}</label>
+          <input class="input" id="currency" name="currency" value="{{ comp.currency or '' }}" placeholder="SAR">
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="company_type">{{ t('company_type') }}</label>
+          <select class="select" id="company_type" name="company_type">
+            {% for value in ['retail', 'wholesale', 'restaurant', 'service', 'carwash', 'installment', 'pharmacy'] %}
+            <option value="{{ value }}" {{ 'selected' if comp.company_type == value }}>{{ t('type_' + value) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="span-6 field">
+          <label class="label" for="logo">{{ t('company_logo') }}</label>
+          <input class="input" id="logo" type="file" name="logo" accept="image/*">
+          <span class="help">{{ t('logo_hint') }}</span>
+          {% if comp.logo %}
+          <div class="row" style="margin-top:6px">
+            <img src="/uploads/{{ comp.logo }}" alt="" style="height:44px;border:1px solid var(--line);border-radius:4px;background:#fff;padding:3px">
+            <label class="check"><input type="checkbox" name="remove_logo" value="1"><span class="tiny">{{ t('delete') }}</span></label>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('settings_invoicing') }}</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-3 field"><label class="label" for="inv_prefix">{{ t('inv_prefix') }}</label>
+          <input class="input mono" id="inv_prefix" name="inv_prefix" value="{{ comp.inv_prefix or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="inv_suffix">{{ t('inv_suffix') }}</label>
+          <input class="input mono" id="inv_suffix" name="inv_suffix" value="{{ comp.inv_suffix or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="next_sale_no">{{ t('next_sale_no') }}</label>
+          <input class="input mono" id="next_sale_no" type="number" name="next_sale_no" value="{{ comp.next_sale_no or 1 }}"></div>
+        <div class="span-3 field"><label class="label" for="tax_percent">{{ t('tax_percent') }}</label>
+          <input class="input mono" id="tax_percent" type="number" step="any" name="tax_percent" value="{{ comp.tax_percent }}"></div>
+        <div class="span-3 field"><label class="label" for="pinv_prefix">{{ t('pinv_prefix') }}</label>
+          <input class="input mono" id="pinv_prefix" name="pinv_prefix" value="{{ comp.pinv_prefix or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="pinv_suffix">{{ t('pinv_suffix') }}</label>
+          <input class="input mono" id="pinv_suffix" name="pinv_suffix" value="{{ comp.pinv_suffix or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="next_purchase_no">{{ t('next_purchase_no') }}</label>
+          <input class="input mono" id="next_purchase_no" type="number" name="next_purchase_no" value="{{ comp.next_purchase_no or 1 }}"></div>
+        <div class="span-3 field"><label class="label" for="expiry_alert_days">{{ t('expiry_alert_days') }}</label>
+          <input class="input mono" id="expiry_alert_days" type="number" name="expiry_alert_days" value="{{ comp.expiry_alert_days or 30 }}"></div>
+        <div class="span-3 field"><label class="label" for="order_prefix">{{ t('order_prefix') }}</label>
+          <input class="input mono" id="order_prefix" name="order_prefix" value="{{ comp.order_prefix or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="vch_prefix">{{ t('vch_prefix') }}</label>
+          <input class="input mono" id="vch_prefix" name="vch_prefix" value="{{ comp.vch_prefix or '' }}"></div>
+        <div class="span-6 field"><label class="label" for="invoice_terms">{{ t('invoice_terms') }}</label>
+          <textarea class="textarea" id="invoice_terms" name="invoice_terms" style="min-height:64px">{{ comp.invoice_terms or '' }}</textarea></div>
+        <div class="span-6 field"><label class="label" for="receipt_footer">{{ t('receipt_footer') }}</label>
+          <textarea class="textarea" id="receipt_footer" name="receipt_footer" style="min-height:64px">{{ comp.receipt_footer or '' }}</textarea></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('settings_appearance') }}</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-3 field"><label class="label" for="lang">{{ t('language') }}</label>
+          <select class="select" id="lang" name="lang">
+            <option value="ar" {{ 'selected' if comp.lang == 'ar' }}>{{ t('arabic') }}</option>
+            <option value="en" {{ 'selected' if comp.lang == 'en' }}>{{ t('english') }}</option>
+          </select></div>
+        <div class="span-3 field"><label class="label" for="theme">{{ t('theme') }}</label>
+          <select class="select" id="theme" name="theme">
+            <option value="light" {{ 'selected' if comp.theme == 'light' }}>{{ t('light') }}</option>
+            <option value="dark" {{ 'selected' if comp.theme == 'dark' }}>{{ t('dark') }}</option>
+          </select></div>
+        <div class="span-3 field"><label class="label" for="accent">{{ t('accent') }}</label>
+          <select class="select" id="accent" name="accent">
+            {% for value in ['clay', 'ink', 'moss', 'plum'] %}
+            <option value="{{ value }}" {{ 'selected' if comp.accent == value }}>{{ t('accent_' + value) }}</option>
+            {% endfor %}
+          </select></div>
+        <div class="span-3 field"><span class="label">{{ t('settings_access') }}</span>
+          <label class="check"><input type="checkbox" name="restrict_scope" {{ 'checked' if comp.restrict_scope }}>
+            <span class="tiny">{{ t('restrict_scope') }}</span></label>
+          <label class="check"><input type="checkbox" name="show_cost" {{ 'checked' if comp.show_cost }}>
+            <span class="tiny">{{ t('show_cost') }}</span></label>
+        </div>
+        <div class="span-6 field"><span class="label">{{ t('auto_backup') }}</span>
+          <label class="check"><input type="checkbox" name="auto_backup" {{ 'checked' if comp.auto_backup }}>
+            <span class="tiny">{{ t('auto_backup_hint') }}</span></label>
+          <div class="row">
+            <span class="tiny muted">{{ t('backup_hours') }}</span>
+            <input class="input mono" type="number" name="backup_hours" value="{{ comp.backup_hours or 24 }}" style="max-width:100px">
+            <span class="tiny muted">{{ t('last_backup') }}: {{ comp.last_backup|stamp if comp.last_backup else t('never') }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+        <a class="btn btn-ghost" href="{{ url_for('dashboard') }}">{{ t('cancel') }}</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

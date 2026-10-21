@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% block actions %}
+{% if lic.state == 'licensed' %}
+<a class="btn" href="{{ url_for('license_download') }}">{{ icon('download')|safe }} {{ t('license_download') }}</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="grid grid-side">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">{{ t('license_status') }}</span>
+        <div class="card-actions">
+          {% if lic.state == 'licensed' %}<span class="badge b-ok">{{ t('license_active') }}</span>
+          {% elif lic.state == 'expired' %}<span class="badge b-danger">{{ t('license_expired') }}</span>
+          {% else %}<span class="badge b-warn">{{ t('license_trial') }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="span-4 field"><span class="label">{{ t('license_customer') }}</span>
+            <span class="strong">{{ lic.customer or '—' }}</span></div>
+          <div class="span-4 field"><span class="label">{{ t('license_edition') }}</span>
+            <span class="strong">{{ t('edition_' + lic.edition) }}</span></div>
+          <div class="span-4 field"><span class="label">{{ t('license_seats') }}</span>
+            <span class="strong mono">{{ lic.seats }}</span></div>
+          <div class="span-4 field"><span class="label">{{ t('license_expires') }}</span>
+            <span class="mono">{{ lic.expires or '—' }}</span></div>
+          <div class="span-4 field"><span class="label">{{ t('license_days_left') }}</span>
+            <span class="mono">{{ lic.days_left if lic.days_left is not none else '∞' }}</span></div>
+          <div class="span-4 field"><span class="label">{{ t('license_machine_id') }}</span>
+            <span class="row" style="gap:6px">
+              <span class="mono-sm" dir="ltr">{{ machine }}</span>
+              <button class="btn btn-sm btn-ghost" type="button" data-copy="#machineValue" title="{{ t('license_copy') }}">{{ icon('copy')|safe }}</button>
+              <input type="hidden" id="machineValue" value="{{ machine }}" dir="ltr">
+            </span></div>
+        </div>
+
+        {% if lic.state == 'lifetime' %}
+        <div class="flash success" style="margin-top:14px">{{ icon('check')|safe }}
+          <div>{{ t('license_admin_lifetime') }}</div></div>
+        {% elif lic.state == 'licensed' and lic.scope == 'user' %}
+        <div class="flash success" style="margin-top:14px">{{ icon('check')|safe }}
+          <div>{{ t('license_user_licensed') }} — {{ t('license_scope') }}: {{ user.full_name or user.username }}</div></div>
+        {% elif lic.state == 'trial' %}
+        <div class="flash warning" style="margin-top:14px">{{ icon('info')|safe }}
+          <div>{{ t('license_trial_note', days=lic.trial_days_left) }}</div></div>
+        {% elif lic.state in ('expired', 'trial_expired') %}
+        <div class="flash danger" style="margin-top:14px">{{ icon('alert')|safe }}
+          <div>{{ t('license_banner_user_expired') }}</div></div>
+        {% endif %}
+
+        <div class="tiny muted" style="margin-top:12px">
+          <b>{{ t('license_installation') }}:</b>
+          {% if installation.state == 'licensed' %}
+          <span class="badge b-ok">{{ t('license_active') }}</span> {{ t('edition_' + installation.edition) }}
+          {% if installation.expires %}· {{ installation.expires }}{% endif %}
+          {% else %}
+          <span class="badge b-warn">{{ t('license_trial') }}</span>
+          {% endif %}
+          <div style="margin-top:4px">{{ t('license_trial_personal') }}</div>
+        </div>
+
+        {% if lic.key %}
+        <div class="field" style="margin-top:16px">
+          <label class="label" for="activeKey">{{ t('license_key') }}</label>
+          <textarea class="textarea mono" id="activeKey" readonly rows="4" dir="ltr" style="min-height:96px;font-size:11.5px">{{ lic.key }}</textarea>
+          <div class="row" style="margin-top:6px">
+            <button class="btn btn-sm" type="button" data-copy="#activeKey">{{ icon('copy')|safe }} {{ t('license_copy') }}</button>
+            <a class="btn btn-sm" href="{{ url_for('license_download') }}">{{ icon('download')|safe }} {{ t('license_download') }}</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('license_history') }}</span>
+        <div class="card-actions"><span class="badge b-neutral">{{ history|length }}</span></div></div>
+      <div class="table-wrap">
+        <table class="table table-sm">
+          <thead><tr><th>{{ t('license_customer') }}</th><th>{{ t('license_edition') }}</th>
+            <th>{{ t('license_expires') }}</th><th>{{ t('status') }}</th><th class="act"></th></tr></thead>
+          <tbody>
+            {% for item in history %}
+            <tr>
+              <td>{{ item.customer or '—' }}<div class="tiny muted">{{ item.created_by }} · {{ item.created_at|stamp('%Y-%m-%d') }}</div></td>
+              <td class="tiny">{{ t('edition_' + item.edition) }}</td>
+              <td class="mono-sm" dir="ltr">{{ item.expires }}</td>
+              <td>
+                {% if item.status == 'active' %}<span class="badge b-ok">{{ t('license_active') }}</span>
+                {% else %}<span class="badge b-neutral">{{ t('license_revoked_state') }}</span>{% endif %}
+              </td>
+              <td class="act">
+                {% if item.status == 'active' %}
+                <form method="post" action="{{ url_for('license_revoke') }}" data-confirm="{{ t('confirm_action') }}">
+                  <input type="hidden" name="id" value="{{ item.id }}">
+                  <button class="btn btn-sm btn-ghost" type="submit">{{ t('license_revoke') }}</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="muted tiny">{{ t('license_no_active') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('license_generator') }}</span></div>
+      <div class="card-body">
+        <p class="tiny muted" style="margin-top:0">{{ t('license_generator_hint') }}</p>
+        <form method="post" action="{{ url_for('license_generate') }}" class="stack">
+          <div class="field">
+            <label class="label" for="customer">{{ t('license_customer') }} <span class="req">*</span></label>
+            <input class="input" id="customer" name="customer" required
+                   value="{{ generated_payload.c if generated_payload else (company.name or '') }}">
+          </div>
+          <div class="row">
+            <div class="field" style="flex:1">
+              <label class="label" for="edition">{{ t('license_edition') }}</label>
+              <select class="select" id="edition" name="edition">
+                {% for edition in editions %}
+                <option value="{{ edition }}" {{ 'selected' if edition == 'standard' }}>{{ t('edition_' + edition) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field" style="flex:1">
+              <label class="label" for="seats">{{ t('license_seats') }}</label>
+              <input class="input mono" id="seats" name="seats" type="number" min="1" value="1">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field" style="flex:1">
+              <label class="label" for="days">{{ t('license_validity_days') }}</label>
+              <input class="input mono" id="days" name="days" type="number" min="1" value="365">
+            </div>
+            <div class="field" style="flex:1">
+              <label class="label" for="expires">{{ t('license_expiry_date') }}</label>
+              <input class="input" id="expires" name="expires" type="date" value="{{ default_expires }}">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="bind">{{ t('license_bind') }}</label>
+            <select class="select" id="bind" name="bind">
+              <option value="any">{{ t('license_bind_any') }}</option>
+              <option value="machine">{{ t('license_bind_machine') }} — {{ machine }}</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">{{ icon('key')|safe }} {{ t('license_generate') }}</button>
+        </form>
+
+        {% if generated %}
+        <hr class="hr">
+        <div class="field">
+          <label class="label" for="generatedKey">{{ t('license_generated') }}</label>
+          <textarea class="textarea mono" id="generatedKey" readonly rows="4" dir="ltr" style="min-height:96px;font-size:11.5px">{{ generated }}</textarea>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn btn-sm" type="button" data-copy="#generatedKey">{{ icon('copy')|safe }} {{ t('license_copy') }}</button>
+          <form method="post" action="{{ url_for('license_activate') }}">
+            <input type="hidden" name="key" value="{{ generated }}">
+            <button class="btn btn-sm btn-primary" type="submit">{{ icon('check')|safe }} {{ t('license_activate') }}</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">{{ t('license_activate') }}</span></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('license_activate') }}" class="stack" data-busy="off">
+          <div class="field">
+            <label class="label" for="keyInput">{{ t('license_key') }}</label>
+            <textarea class="textarea mono" id="keyInput" name="key" rows="3" dir="ltr"
+                      placeholder="SNDX-..." style="font-size:11.5px"></textarea>
+            <span class="help">{{ t('license_activate_hint') }}</span>
+          </div>
+          <label class="check"><input type="checkbox" name="force" value="1">
+            <span class="tiny">{{ t('license_allow_other_machine') }}</span></label>
+          <button class="btn btn-primary" type="submit">{{ icon('check')|safe }} {{ t('license_activate') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-head">
+    <span class="card-title">{{ t('license_user_trials') }}</span>
+    <div class="card-actions"><span class="badge b-neutral">{{ trials|length }}</span></div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>{{ t('user') }}</th><th>{{ t('license_trial_started') }}</th>
+          <th class="num">{{ t('license_trial_days') }}</th><th>{{ t('status') }}</th>
+          <th class="act">{{ t('actions') }}</th></tr>
+      </thead>
+      <tbody>
+        {% for row in trials %}
+        <tr>
+          <td>{{ row.full_name or row.username }}<div class="tiny muted">@{{ row.username }}</div></td>
+          <td class="mono-sm">{{ row.trial_started|stamp('%Y-%m-%d') if row.trial_started else '—' }}</td>
+          <td class="num">{{ row.licence.days_left if row.licence.days_left is not none else '∞' }}</td>
+          <td>
+            {% if row.licence.state == 'licensed' %}<span class="badge b-ok">{{ t('license_user_licensed') }}</span>
+            {% elif row.licence.state == 'trial' %}<span class="badge b-warn">{{ t('license_user_trial') }}</span>
+            {% else %}<span class="badge b-danger">{{ t('license_trial_expired') }}</span>{% endif %}
+          </td>
+          <td class="act">
+            <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
+              <input type="hidden" name="uid" value="{{ row.id }}">
+              <input type="hidden" name="action" value="reset">
+              <button class="btn btn-sm btn-ghost" type="submit">{{ t('license_reset_trial') }}</button>
+            </form>
+            {% if row.licence.state == 'licensed' %}
+            <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
+              <input type="hidden" name="uid" value="{{ row.id }}">
+              <input type="hidden" name="action" value="revoke">
+              <button class="btn btn-sm btn-ghost" type="submit">{{ t('license_revoke_grant') }}</button>
+            </form>
+            {% else %}
+            <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
+              <input type="hidden" name="uid" value="{{ row.id }}">
+              <input type="hidden" name="action" value="grant">
+              <button class="btn btn-sm btn-ok" type="submit">{{ t('license_grant') }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted tiny">{{ t('license_no_users') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  document.querySelectorAll('[data-copy]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var field = document.querySelector(button.getAttribute('data-copy'));
+      if (!field) return;
+      var value = field.value !== undefined ? field.value : field.textContent;
+      var done = function () {
+        var original = button.getAttribute('data-original') || button.innerHTML;
+        button.setAttribute('data-original', original);
+        button.textContent = '✓';
+        setTimeout(function () { button.innerHTML = original; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done, done);
+      } else {
+        field.select();
+        document.execCommand('copy');
+        done();
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

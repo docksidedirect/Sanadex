@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ request.path }}?{{ request.query_string }}&amp;export=1">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<button class="btn" type="button" data-print>{{ icon('print')|safe }} {{ t('print_report') }}</button>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:14px">
+  <div class="toolbar">
+    <form method="get">
+      <select class="select" name="ptype" data-autosubmit style="max-width:160px">
+        <option value="customer" {{ 'selected' if party_type == 'customer' }}>{{ t('customers') }}</option>
+        <option value="supplier" {{ 'selected' if party_type == 'supplier' }}>{{ t('suppliers') }}</option>
+      </select>
+      <select class="select" name="pid" data-autosubmit style="max-width:260px">
+        {% for row in parties %}<option value="{{ row.id }}" {{ 'selected' if row.id == party.id if party }}>{{ row.name }}</option>{% endfor %}
+      </select>
+      <input class="input" type="date" name="d1" value="{{ d1 }}" style="max-width:160px">
+      <input class="input" type="date" name="d2" value="{{ d2 }}" style="max-width:160px">
+      <button class="btn btn-sm" type="submit">{{ t('apply') }}</button>
+    </form>
+  </div>
+</div>
+
+{% if party %}
+<div class="kpis" style="margin-bottom:16px">
+  <div class="kpi"><span class="kpi-label">{{ t('opening_balance') }}</span><span class="kpi-value">{{ totals.opening|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('debit') }}</span><span class="kpi-value">{{ totals.debit|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('credit') }}</span><span class="kpi-value">{{ totals.credit|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('closing_balance') }}</span>
+    <span class="kpi-value" style="color:var(--accent)">{{ totals.closing|money }}</span></div>
+</div>
+
+<div class="card">
+  <div class="card-head"><span class="card-title">{{ t('statement_for', name=party.name) }}</span>
+    <div class="card-actions"><span class="badge b-neutral">{{ party.phone or '' }}</span></div></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ t('date') }}</th><th>{{ t('description') }}</th>
+        <th class="num">{{ t('debit') }}</th><th class="num">{{ t('credit') }}</th>
+        <th class="num">{{ t('balance') }}</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="mono-sm nowrap">{{ row.date or '—' }}</td>
+          <td>{{ row.doc }}</td>
+          <td class="num">{{ row.debit|money if row.debit != '' else '' }}</td>
+          <td class="num">{{ row.credit|money if row.credit != '' else '' }}</td>
+          <td class="num strong">{{ row.balance|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">{{ icon('file-text')|safe }}<b>{{ t('statement_empty') }}</b></div>
+{% endif %}
+{% endblock %}

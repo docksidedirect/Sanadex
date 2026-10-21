@@ -1,0 +1,5 @@
+jinja2>=3.0
+# Optional: SQL Server engine (SANADEX_DB=mssql). The app runs without it on SQLite.
+# pyodbc>=5.0
+#
+# Excel (.xlsx) import/export is built in (xlsx.py) — openpyxl is NOT required.

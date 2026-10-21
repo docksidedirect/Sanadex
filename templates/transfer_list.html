@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn btn-primary" href="{{ url_for('transfer_new') }}">{{ icon('plus')|safe }} {{ t('new_transfer') }}</a>
+<a class="btn" href="{{ url_for('report_transfers') }}">{{ icon('chart')|safe }} {{ t('transfer_report') }}</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ t('transfer_no') }}</th><th>{{ t('date') }}</th><th>{{ t('from_store') }}</th>
+        <th>{{ t('to_store') }}</th><th class="num">{{ t('invoice_total_lines') }}</th>
+        <th class="num">{{ t('qty') }}</th><th class="act">{{ t('actions') }}</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="mono-sm">{{ row.number }}</td>
+          <td class="nowrap">{{ row.tdate }}</td>
+          <td>{{ row.from_name }}</td>
+          <td>{{ row.to_name }}</td>
+          <td class="num">{{ row.lines }}</td>
+          <td class="num">{{ row.qty|num }}</td>
+          <td class="act">
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('transfer_print', tid=row.id) }}" title="{{ t('print') }}">{{ icon('print')|safe }}</a>
+            <form class="inline-form" method="post" action="{{ url_for('transfer_delete', tid=row.id) }}"
+                  data-confirm="{{ t('transfer_delete_confirm') }}">
+              <button class="btn btn-sm btn-ghost" type="submit" title="{{ t('delete') }}">{{ icon('trash')|safe }}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7"><div class="empty">{{ icon('swap')|safe }}<b>{{ t('no_data') }}</b>
+          <p>{{ t('no_data_hint') }}</p>
+          <a class="btn btn-primary btn-sm" href="{{ url_for('transfer_new') }}">{{ t('new_transfer') }}</a>
+        </div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

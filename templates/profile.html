@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="grid grid-side">
+  <form method="post" class="card">
+    <div class="card-head"><span class="card-title">{{ t('profile') }}</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-6 field"><label class="label" for="full_name">{{ t('full_name') }}</label>
+          <input class="input" id="full_name" name="full_name" value="{{ user.full_name or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="phone">{{ t('phone') }}</label>
+          <input class="input" id="phone" name="phone" value="{{ user.phone or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="email">{{ t('email') }}</label>
+          <input class="input" id="email" name="email" value="{{ user.email or '' }}"></div>
+        <div class="span-3 field"><label class="label" for="lang">{{ t('language') }}</label>
+          <select class="select" id="lang" name="lang">
+            <option value="">{{ t('select') }}</option>
+            <option value="ar" {{ 'selected' if user.lang == 'ar' }}>{{ t('arabic') }}</option>
+            <option value="en" {{ 'selected' if user.lang == 'en' }}>{{ t('english') }}</option>
+          </select></div>
+      </div>
+      <hr class="hr">
+      <div class="section-label">{{ t('change_password') }}</div>
+      <div class="form-grid">
+        <div class="span-4 field"><label class="label" for="current_password">{{ t('password') }}</label>
+          <input class="input" id="current_password" type="password" name="current_password" autocomplete="current-password"></div>
+        <div class="span-4 field"><label class="label" for="new_password">{{ t('change_password') }}</label>
+          <input class="input" id="new_password" type="password" name="new_password" autocomplete="new-password"></div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save_changes') }}</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-body">
+        <div class="row">
+          <span class="avatar lg">{{ (user.full_name or user.username or 'U')[0]|upper }}</span>
+          <div>
+            <div class="strong">{{ user.full_name or user.username }}</div>
+            <div class="tiny muted">@{{ user.username }}</div>
+          </div>
+        </div>
+        <hr class="hr">
+        <div class="kv">
+          <dt>{{ t('role') }}</dt><dd>{{ user.perms.name if user.perms and user.perms.name else ('Administrator' if user.is_admin else '—') }}</dd>
+          <dt>{{ t('last_login') }}</dt><dd>{{ user.last_login|stamp if user.last_login else t('never_logged') }}</dd>
+          <dt>{{ t('assigned_treasury') }}</dt><dd>{{ user.treasury_id or '—' }}</dd>
+          <dt>{{ t('assigned_store') }}</dt><dd>{{ user.store_id or '—' }}</dd>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="section-label">{{ t('shortcuts') }}</div>
+        <div class="row"><span class="kbd">Ctrl K</span><span class="tiny muted">{{ t('quick_search') }}</span></div>
+        <div class="row" style="margin-top:6px"><span class="kbd">Esc</span><span class="tiny muted">{{ t('keyboard_hint') }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

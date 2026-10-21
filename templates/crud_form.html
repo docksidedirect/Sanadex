@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for(crud.back) }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    {% if crud.form_hint %}<p class="muted tiny" style="margin-bottom:12px">{{ t(crud.form_hint) }}</p>{% endif %}
+    {% if errors %}
+    <div class="flash danger" style="margin-bottom:14px">{{ icon('alert')|safe }}
+      <div>{% for error in errors %}<div>{{ error }}</div>{% endfor %}</div></div>
+    {% endif %}
+    <form method="post" action="{{ url_for(crud.key + '_edit', rid=row.id) if row.get('id') else url_for(crud.key + '_new') }}"
+          enctype="multipart/form-data">
+      <div class="form-grid">
+        {% for field in crud.fields %}
+        {% set value = row.get(field.name, field.get('default', '')) %}
+        {% if field.type == 'hidden' %}
+          {# fixed values are supplied server-side #}
+        {% elif field.type == 'checkbox' %}
+        <div class="span-3 field">
+          <span class="label">{{ t(field.label) }}</span>
+          <label class="check">
+            <input type="checkbox" name="{{ field.name }}" {{ 'checked' if value }}>
+            <span>{{ t(field.label) }}</span>
+          </label>
+        </div>
+        {% elif field.type == 'textarea' %}
+        <div class="span-12 field">
+          <label class="label" for="f_{{ field.name }}">{{ t(field.label) }}
+            {% if field.required %}<span class="req">*</span>{% endif %}</label>
+          <textarea class="textarea" id="f_{{ field.name }}" name="{{ field.name }}"
+                    {% if field.required %}required{% endif %}>{{ value if value is not none else '' }}</textarea>
+        </div>
+        {% elif field.type == 'select' %}
+        <div class="span-4 field">
+          <label class="label" for="f_{{ field.name }}">{{ t(field.label) }}
+            {% if field.required %}<span class="req">*</span>{% endif %}</label>
+          <select class="select" id="f_{{ field.name }}" name="{{ field.name }}">
+            {% if not field.required %}<option value="">{{ t('select') }}</option>{% endif %}
+            {% for option_value, option_label in crud.options(request, field) %}
+            <option value="{{ option_value }}" {{ 'selected' if value|string == option_value|string }}>{{ option_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% elif field.type == 'password' %}
+        <div class="span-4 field">
+          <label class="label" for="f_{{ field.name }}">{{ t(field.label) }}</label>
+          <input class="input" id="f_{{ field.name }}" type="password" name="{{ field.name }}"
+                 autocomplete="new-password" placeholder="{{ t('password_keep') }}">
+        </div>
+        {% elif field.type == 'file' %}
+        <div class="span-6 field">
+          <label class="label" for="f_{{ field.name }}">{{ t(field.label) }}</label>
+          <input class="input" id="f_{{ field.name }}" type="file" name="{{ field.name }}">
+          {% if value %}<span class="help">{{ value }}</span>{% endif %}
+        </div>
+        {% elif field.type == 'date' %}
+        <div class="span-3 field">
+          <label class="label" for="f_{{ field.name }}">{{ t(field.label) }}
+            {% if field.required %}<span class="req">*</span>{% endif %}</label>
+          <input class="input" id="f_{{ field.name }}" type="date" name="{{ field.name }}" value="{{ value or '' }}">
+        </div>
+        {% elif field.type in ('number', 'money') %}
+        <div class="span-3 field">
+          <label class="label" for="f_{{ field.name }}">{{ t(field.label) }}
+            {% if field.required %}<span class="req">*</span>{% endif %}</label>
+          <input class="input mono" id="f_{{ field.name }}" type="number" step="{{ field.get('step', 'any') }}"
+                 name="{{ field.name }}" value="{{ value if value is not none else 0 }}"
+                 {% if field.required %}required{% endif %}>
+        </div>
+        {% else %}
+        <div class="span-4 field">
+          <label class="label" for="f_{{ field.name }}">{{ t(field.label) }}
+            {% if field.required %}<span class="req">*</span>{% endif %}</label>
+          <input class="input" id="f_{{ field.name }}" type="text" name="{{ field.name }}"
+                 value="{{ value if value is not none else '' }}" {% if field.required %}required{% endif %}>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      <div class="row" style="margin-top:20px">
+        <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+        <button class="btn" type="submit" name="_and_new" value="1">{{ t('save_and_new') }}</button>
+        <span class="spacer"></span>
+        <a class="btn btn-ghost" href="{{ url_for(crud.back) }}">{{ t('cancel') }}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

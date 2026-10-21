@@ -1,0 +1,87 @@
+# Sanadex.wanis.online — ignore rules
+# ---------------------------------------------------------------- python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.ENV/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# ---------------------------------------------------------------- database (never commit business data)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+sanadex.db
+sahm.db
+test.db
+test-*.db
+smoke.db
+final-check.db
+shots.db
+dbg*.db
+
+# ---------------------------------------------------------------- runtime folders
+# keep the folders, ignore what is inside them
+backups/*
+!backups/.gitkeep
+uploads/*
+!uploads/.gitkeep
+data/
+shots/
+inspect/
+repro/
+.edge/
+.edge-profile/
+
+# ---------------------------------------------------------------- secrets & config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+
+# ---------------------------------------------------------------- logs & temp output
+*.log
+server.out
+server.err
+server2.out
+server2.err
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# ---------------------------------------------------------------- editors & OS
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---------------------------------------------------------------- local overrides
+docker-compose.override.yml

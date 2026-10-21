@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('item_template') }}">{{ icon('download')|safe }} {{ t('download_template') }}</a>
+<a class="btn" href="{{ url_for('items') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <form method="post" enctype="multipart/form-data" class="card">
+    <div class="card-head"><span class="card-title">{{ t('import_items') }}</span></div>
+    <div class="card-body stack">
+      <p class="muted tiny" style="margin:0">{{ t('import_hint') }}</p>
+      <div class="field">
+        <label class="label" for="file">{{ t('choose_file') }}</label>
+        <input class="input" id="file" type="file" name="file" accept=".xlsx,.xlsm,.csv,.txt" required>
+      </div>
+      <label class="check"><input type="checkbox" name="update_existing" checked>
+        <span>{{ t('update_existing') }}</span></label>
+      <div class="row">
+        <button class="btn btn-primary" type="submit">{{ icon('upload')|safe }} {{ t('import') }}</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('download_template') }}</span></div>
+    <div class="card-body">
+      <table class="table table-sm">
+        <thead><tr><th>#</th><th>{{ t('code') }}</th><th>{{ t('item_name') }}</th><th>{{ t('category') }}</th>
+          <th>{{ t('purchase_price') }}</th><th>{{ t('sale_price') }}</th><th>{{ t('reorder_level') }}</th>
+          <th>{{ t('barcode') }}</th><th>{{ t('stock') }}</th></tr></thead>
+        <tbody><tr><td>1</td><td class="mono-sm">P-100</td><td>Sample item</td><td>Category</td>
+          <td class="num">10</td><td class="num">15</td><td class="num">5</td>
+          <td class="mono-sm">6281000000017</td><td class="num">20</td></tr></tbody>
+      </table>
+      <p class="tiny muted" style="margin-top:10px">{{ t('import_hint') }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

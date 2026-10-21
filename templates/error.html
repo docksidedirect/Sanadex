@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="max-width:680px;margin:6vh auto">
+  <div class="card-body" style="text-align:center;padding:38px 26px">
+    <div class="mono" style="font-size:52px;font-weight:700;color:var(--accent);letter-spacing:-.04em">{{ code }}</div>
+    <h2 style="margin:6px 0 8px">{{ message }}</h2>
+    <p class="muted">{{ t('tagline_long') }}</p>
+    <div class="row" style="justify-content:center;margin-top:16px">
+      <a class="btn btn-primary" href="{{ url_for('dashboard') }}">{{ t('back_home') }}</a>
+      <a class="btn" href="{{ url_for('search') }}">{{ t('search_everything') }}</a>
+    </div>
+    {% if detail %}
+    <pre style="text-align:start;margin-top:20px;padding:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;overflow:auto;font-size:11px">{{ detail }}</pre>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

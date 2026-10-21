@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn btn-primary" href="{{ url_for('order_new') }}?type={{ otype }}">{{ icon('plus')|safe }} {{ t('new_order') }}</a>
+{% endblock %}
+{% block content %}
+<div class="tabs">
+  <a class="tab {{ 'is-on' if otype == 'sale' }}" href="{{ url_for('sale_orders') }}">{{ t('sale_orders') }}</a>
+  <a class="tab {{ 'is-on' if otype == 'purchase' }}" href="{{ url_for('purchase_orders') }}">{{ t('purchase_orders') }}</a>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ t('order_no') }}</th><th>{{ t('date') }}</th><th>{{ t('party') }}</th>
+          <th class="num">{{ t('invoice_total_lines') }}</th><th class="num">{{ t('total') }}</th>
+          <th>{{ t('due_date') }}</th><th>{{ t('status') }}</th><th class="act">{{ t('actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{% if row.due_date and row.due_date < day and row.status == 'pending' %}warn-row{% endif %}">
+          <td class="mono-sm">{{ row.number }}</td>
+          <td class="nowrap">{{ row.odate }}</td>
+          <td>{{ row.party_name or '—' }}</td>
+          <td class="num">{{ row.lines }}</td>
+          <td class="num">{{ row.total|money }}</td>
+          <td class="nowrap">{{ row.due_date or '—' }}</td>
+          <td>
+            {% if row.status == 'pending' %}
+              {% if row.due_date and row.due_date < day %}
+              <span class="badge b-danger">{{ t('order_late') }}</span>
+              {% else %}<span class="badge b-warn">{{ t('order_status_pending') }}</span>{% endif %}
+            {% elif row.status == 'done' %}<span class="badge b-ok">{{ t('order_status_done') }}</span>
+            {% else %}<span class="badge b-neutral">{{ t('order_status_cancelled') }}</span>{% endif %}
+          </td>
+          <td class="act">
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('order_print', oid=row.id) }}" title="{{ t('print') }}">{{ icon('print')|safe }}</a>
+            {% if row.status != 'done' %}
+            <form class="inline-form" method="post" action="{{ url_for('order_convert', oid=row.id) }}">
+              <button class="btn btn-sm btn-ok" type="submit">{{ icon('file-text')|safe }} {{ t('convert_to_invoice') }}</button>
+            </form>
+            <form class="inline-form" method="post" action="{{ url_for('order_done', oid=row.id) }}">
+              <button class="btn btn-sm btn-ghost" type="submit" title="{{ t('mark_done') }}">{{ icon('check')|safe }}</button>
+            </form>
+            {% elif row.invoice_id %}
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('invoice_view', iid=row.invoice_id) }}">{{ icon('eye')|safe }}</a>
+            {% endif %}
+            <form class="inline-form" method="post" action="{{ url_for('order_delete', oid=row.id) }}" data-confirm="{{ t('confirm_delete') }}">
+              <button class="btn btn-sm btn-ghost" type="submit" title="{{ t('delete') }}">{{ icon('trash')|safe }}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8"><div class="empty">{{ icon('clipboard')|safe }}<b>{{ t('no_data') }}</b>
+          <p>{{ t('no_data_hint') }}</p>
+          <a class="btn btn-primary btn-sm" href="{{ url_for('order_new') }}?type={{ otype }}">{{ t('new_order') }}</a>
+        </div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

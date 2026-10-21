@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <span class="card-title">{{ t('audit_log') }}</span>
+    <div class="card-actions"><span class="tiny muted">{{ t('audit_hint') }}</span></div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ t('date') }}</th><th>{{ t('user') }}</th><th>{{ t('type') }}</th>
+        <th>{{ t('details') }}</th><th>{{ t('reference') }}</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="mono-sm nowrap">{{ row.ts|stamp }}</td>
+          <td>{{ row.username or '—' }}</td>
+          <td>
+            {% set tone = 'b-ok' if row.action == 'create' else ('b-info' if row.action == 'update' else ('b-danger' if row.action == 'delete' else 'b-neutral')) %}
+            <span class="badge {{ tone }}">{{ t('action_' + row.action) if row.action in ['create','update','delete','login','login_failed'] else row.action }}</span>
+          </td>
+          <td class="tiny">{{ row.entity }}<span class="muted"> {{ row.detail }}</span></td>
+          <td class="mono-sm">{{ row.entity_id or '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5"><div class="empty">{{ icon('list')|safe }}<b>{{ t('no_data') }}</b></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pager.pages > 1 %}
+  <div class="pager"><span>{{ t('page') }} {{ pager.page }} / {{ pager.pages }}</span><span class="spacer"></span>
+    {% if pager.prev %}<a href="{{ pager.prev }}">‹</a>{% endif %}
+    {% if pager.next %}<a href="{{ pager.next }}">›</a>{% endif %}</div>
+  {% endif %}
+</div>
+{% endblock %}

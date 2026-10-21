@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block actions %}
+<button class="btn" type="button" data-print>{{ icon('print')|safe }} {{ t('print') }}</button>
+<a class="btn" href="{{ url_for('journals') }}">{{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <span class="card-title">{{ t('journal_no') }} {{ journal.number }}</span>
+    <div class="card-actions"><span class="badge b-neutral mono">{{ journal.jdate }}</span></div>
+  </div>
+  <div class="card-body">
+    <p class="muted">{{ journal.note or '' }}</p>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ t('account_code') }}</th><th>{{ t('account_name') }}</th>
+          <th class="num">{{ t('debit') }}</th><th class="num">{{ t('credit') }}</th><th>{{ t('notes') }}</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+          <tr><td class="mono-sm">{{ row.account_code }}</td><td>{{ row.account_name }}</td>
+            <td class="num">{{ row.debit|money }}</td><td class="num">{{ row.credit|money }}</td>
+            <td class="tiny">{{ row.note or '' }}</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><td colspan="2">{{ t('total') }}</td><td class="num">{{ total_debit|money }}</td>
+          <td class="num">{{ total_credit|money }}</td><td></td></tr></tfoot>
+      </table>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <span class="badge {{ 'b-ok' if total_debit == total_credit else 'b-danger' }}">
+        {{ t('journal_balanced') if total_debit == total_credit else t('journal_unbalanced') }}</span>
+      <span class="spacer"></span>
+      <form method="post" action="{{ url_for('journal_delete', jid=journal.id) }}" data-confirm="{{ t('confirm_delete') }}">
+        <button class="btn btn-danger btn-sm" type="submit">{{ icon('trash')|safe }} {{ t('delete') }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn btn-primary" href="{{ url_for('sale_invoice_new' if itype == 'sale' else 'purchase_invoice_new') }}">{{ icon('plus')|safe }} {{ t('add_new') }}</a>
+<a class="btn" href="{{ url_for('sale_invoices' if itype == 'sale' else 'purchase_invoices') }}?export=1&amp;d1={{ request.q('d1') or '' }}&amp;d2={{ request.q('d2') or '' }}&amp;status={{ status }}&amp;s={{ request.q('s') or '' }}">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+{% endblock %}
+{% block content %}
+<div class="tabs">
+  <a class="tab {{ 'is-on' if itype == 'sale' }}" href="{{ url_for('sale_invoices') }}">{{ t('sales_invoices') }}</a>
+  <a class="tab {{ 'is-on' if itype == 'purchase' }}" href="{{ url_for('purchase_invoices') }}">{{ t('purchase_invoices') }}</a>
+</div>
+
+<div class="kpis" style="margin-bottom:14px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+  <div class="kpi"><span class="kpi-label">{{ t('total') }}</span><span class="kpi-value">{{ totals.net|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('paid') }}</span><span class="kpi-value">{{ totals.paid|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('remaining') }}</span><span class="kpi-value">{{ (totals.net - totals.paid)|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('tax') }}</span><span class="kpi-value">{{ totals.tax|money }}</span></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <form method="get" action="{{ url_for('sale_invoices' if itype == 'sale' else 'purchase_invoices') }}">
+      <div class="search-box">
+        {{ icon('search')|safe }}
+        <input class="input" type="search" name="s" value="{{ request.q('s') or '' }}" placeholder="{{ t('invoice_no') }}">
+      </div>
+      <input class="input" type="date" name="d1" value="{{ request.q('d1') or '' }}" style="max-width:150px">
+      <input class="input" type="date" name="d2" value="{{ request.q('d2') or '' }}" style="max-width:150px">
+      <select class="select" name="status" data-autosubmit style="max-width:170px">
+        <option value="">{{ t('invoice_filter_all') }}</option>
+        {% for value in ['paid', 'partial', 'credit', 'cancelled'] %}
+        <option value="{{ value }}" {{ 'selected' if status == value }}>{{ t('status_' + value) }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm" type="submit">{{ icon('filter')|safe }} {{ t('apply') }}</button>
+      <span class="spacer"></span>
+      <span class="tiny muted">{{ t('showing') }} {{ rows|length }} {{ t('of') }} {{ pager.total }}</span>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ t('invoice_no') }}</th>
+          <th>{{ t('date') }}</th>
+          <th>{{ t('party') }}</th>
+          <th class="num">{{ t('subtotal') }}</th>
+          <th class="num">{{ t('tax') }}</th>
+          <th class="num">{{ t('net') }}</th>
+          <th class="num">{{ t('paid') }}</th>
+          <th class="num">{{ t('remaining') }}</th>
+          <th>{{ t('status') }}</th>
+          <th class="act">{{ t('actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a class="mono-sm" href="{{ url_for('invoice_view', iid=row.id) }}">{{ row.number }}</a></td>
+          <td class="nowrap">{{ row.idate }}</td>
+          <td>{{ row.party_name or '—' }}</td>
+          <td class="num">{{ row.subtotal|money }}</td>
+          <td class="num">{{ row.tax|money }}</td>
+          <td class="num strong">{{ row.net|money }}</td>
+          <td class="num">{{ row.paid|money }}</td>
+          <td class="num">{{ (row.net - row.paid)|money }}</td>
+          <td>
+            {% set tone = 'b-ok' if row.status == 'paid' else ('b-warn' if row.status == 'partial' else ('b-danger' if row.status == 'cancelled' else 'b-info')) %}
+            <span class="badge {{ tone }}">{{ t('status_' + row.status) }}</span>
+          </td>
+          <td class="act">
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('invoice_print', iid=row.id) }}" title="{{ t('print') }}">{{ icon('print')|safe }}</a>
+            {% if row.status in ('credit', 'partial') %}
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('invoice_view', iid=row.id) }}#pay" title="{{ t('pay_now') }}">{{ icon('wallet')|safe }}</a>
+            {% endif %}
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('invoice_duplicate', iid=row.id) }}" title="{{ t('duplicate') }}">{{ icon('copy')|safe }}</a>
+            {% if row.status != 'cancelled' %}
+            <form class="inline-form" method="post" action="{{ url_for('invoice_cancel', iid=row.id) }}"
+                  data-confirm="{{ t('invoice_cancel_confirm') }}">
+              <button class="btn btn-sm btn-ghost" type="submit" title="{{ t('cancel') }}">{{ icon('x')|safe }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10"><div class="empty">{{ icon('file-text')|safe }}<b>{{ t('no_data') }}</b>
+          <p>{{ t('no_data_hint') }}</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pager.pages > 1 %}
+  <div class="pager">
+    <span>{{ t('page') }} {{ pager.page }} / {{ pager.pages }}</span><span class="spacer"></span>
+    {% if pager.prev %}<a href="{{ pager.prev }}">‹</a>{% endif %}
+    {% if pager.next %}<a href="{{ pager.next }}">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

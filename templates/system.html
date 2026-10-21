@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('system_info') }}</span></div>
+    <div class="card-body">
+      <div class="kv">
+        <dt>{{ t('app_name_note') }}</dt><dd>{{ info.app }}</dd>
+        <dt>{{ t('app_version') }}</dt><dd>{{ info.version }}</dd>
+        <dt>{{ t('db_engine') }}</dt><dd>{{ info.engine }}</dd>
+        <dt>{{ t('python_version') }}</dt><dd>{{ info.python }}</dd>
+        <dt>OS</dt><dd class="tiny">{{ info.platform }}</dd>
+        <dt>{{ t('db_engine') }}</dt><dd class="tiny mono-sm">{{ info.db_path }}</dd>
+        <dt>{{ t('backups_list') }}</dt><dd class="tiny mono-sm">{{ info.backup_dir }} ({{ info.backup_count }})</dd>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('record_counts') }}</span></div>
+    <div class="table-wrap">
+      <table class="table table-sm">
+        <tbody>
+          {% for table, count in counts.items() %}
+          <tr><td class="mono-sm">{{ table }}</td><td class="num">{{ count|num }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('demo_data') }}</span></div>
+    <div class="card-body stack">
+      <p class="tiny muted" style="margin:0">{{ t('demo_hint') }}</p>
+      <div class="row">
+        <form method="post" action="{{ url_for('demo_load') }}">
+          <button class="btn btn-primary" type="submit">{{ icon('plus')|safe }} {{ t('demo_load') }}</button>
+        </form>
+        <form method="post" action="{{ url_for('demo_clear') }}" data-confirm="{{ t('confirm_action') }}">
+          <button class="btn btn-danger" type="submit">{{ icon('trash')|safe }} {{ t('demo_clear') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('shortcuts') }}</span></div>
+    <div class="card-body">
+      <div class="stack" style="gap:8px">
+        <div class="row"><span class="kbd">Ctrl K</span><span class="tiny">{{ t('quick_search') }}</span></div>
+        <div class="row"><span class="kbd">Esc</span><span class="tiny">{{ t('keyboard_hint') }}</span></div>
+        <div class="row"><span class="kbd">⏎</span><span class="tiny">{{ t('scan_barcode') }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

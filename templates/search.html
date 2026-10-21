@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="margin-bottom:16px">
+  <div class="card-body">
+    <form method="get" action="{{ url_for('search') }}" class="row">
+      <div class="search-box" style="max-width:none;flex:1">
+        {{ icon('search')|safe }}
+        <input class="input" type="search" name="q" value="{{ term }}" autofocus
+               placeholder="{{ t('search_placeholder') }}">
+      </div>
+      <button class="btn btn-primary" type="submit">{{ t('search') }}</button>
+    </form>
+  </div>
+</div>
+
+{% if term %}
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('items') }}</span>
+      <div class="card-actions"><span class="badge b-neutral">{{ results['items']|length }}</span></div></div>
+    <div class="table-wrap"><table class="table table-sm"><tbody>
+      {% for row in results['items'] %}
+      <tr><td class="mono-sm">{{ row.code or '—' }}</td><td>{{ row.name }}</td>
+        <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('item_edit', rid=row.id) }}">{{ t('view') }}</a></td></tr>
+      {% else %}<tr><td class="muted tiny">{{ t('no_results') }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('customers') }} / {{ t('suppliers') }}</span></div>
+    <div class="table-wrap"><table class="table table-sm"><tbody>
+      {% for row in results['customers'] %}
+      <tr><td>{{ row.name }}</td><td class="tiny muted">{{ row.phone }}</td>
+        <td class="act"><span class="badge b-info">{{ t('customer') }}</span></td></tr>
+      {% endfor %}
+      {% for row in results['suppliers'] %}
+      <tr><td>{{ row.name }}</td><td class="tiny muted">{{ row.phone }}</td>
+        <td class="act"><span class="badge b-neutral">{{ t('supplier') }}</span></td></tr>
+      {% endfor %}
+      {% if not results['customers'] and not results['suppliers'] %}<tr><td class="muted tiny">{{ t('no_results') }}</td></tr>{% endif %}
+    </tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('sales_invoices') }}</span></div>
+    <div class="table-wrap"><table class="table table-sm"><tbody>
+      {% for row in results['invoices'] %}
+      <tr><td class="mono-sm">{{ row.number }}</td><td class="num">{{ row.net|money }}</td>
+        <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('invoice_view', iid=row.id) }}">{{ t('view') }}</a></td></tr>
+      {% else %}<tr><td class="muted tiny">{{ t('no_results') }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('nav.sales') }} / {{ t('nav.purchases') }}</span></div>
+    <div class="table-wrap"><table class="table table-sm"><tbody>
+      {% for row in results['orders'] %}
+      <tr><td class="mono-sm">{{ row.number }}</td>
+        <td class="tiny muted">{{ t('sale_orders' if row.otype == 'sale' else 'purchase_orders') }}</td></tr>
+      {% else %}<tr><td class="muted tiny">{{ t('no_results') }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
+</div>
+{% else %}
+<div class="empty" style="margin:0">{{ icon('search')|safe }}<b>{{ t('search_everything') }}</b>
+  <p>{{ t('search_placeholder') }}</p></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="?export=1">{{ icon('download')|safe }} {{ t('export_excel') }}</a>
+<a class="btn" href="{{ url_for('payroll') }}">{{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head"><span class="card-title">{{ t('payroll_month') }} {{ run.month }}</span>
+    <div class="card-actions"><span class="badge b-ok">{{ total|money }}</span></div></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>{{ t('employee') }}</th><th>{{ t('job_role') }}</th><th class="num">{{ t('att_days') }}</th>
+        <th class="num">{{ t('base_salary') }}</th><th class="num">{{ t('bonus') }}</th>
+        <th class="num">{{ t('deduction') }}</th><th class="num">{{ t('advance') }}</th>
+        <th class="num">{{ t('net_salary') }}</th><th class="act"></th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.employee_name }}</td>
+          <td class="tiny muted">{{ row.job_name or '—' }}</td>
+          <td class="num">{{ row.att_days|num }}</td>
+          <td class="num">{{ row.base|money }}</td>
+          <td class="num">{{ row.bonus|money }}</td>
+          <td class="num">{{ row.deduction|money }}</td>
+          <td class="num">{{ row.advance|money }}</td>
+          <td class="num strong">{{ row.net|money }}</td>
+          <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('payslip', rid=run.id, eid=row.employee_id) }}">{{ icon('print')|safe }}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><td colspan="7">{{ t('total') }}</td><td class="num">{{ total|money }}</td><td></td></tr></tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

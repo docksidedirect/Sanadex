@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('sale_orders' if itype == 'sale' else 'purchase_orders') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" action="{{ url_for('order_new') }}" class="stack">
+  <input type="hidden" name="otype" value="{{ itype }}">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('new_order') }}</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-4 field">
+          <label class="label" for="party_id">{{ t('customer' if itype == 'sale' else 'supplier') }}</label>
+          <select class="select" id="party_id" name="party_id">
+            <option value="">{{ t('select') }}</option>
+            {% for party in parties %}<option value="{{ party.id }}">{{ party.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="odate">{{ t('order_date') }}</label>
+          <input class="input" id="odate" type="date" name="odate" value="{{ now }}">
+        </div>
+        <div class="span-3 field">
+          <label class="label" for="due_date">{{ t('due_date') }}</label>
+          <input class="input" id="due_date" type="date" name="due_date">
+        </div>
+        <div class="span-12 field">
+          <label class="label" for="notes">{{ t('notes') }}</label>
+          <textarea class="textarea" id="notes" name="notes" style="min-height:60px"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('items') }}</span>
+      <div class="card-actions">
+        <button class="btn btn-sm" type="button" id="addLine">{{ icon('plus')|safe }} {{ t('add_line') }}</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table table-fixed" id="lines">
+        <thead>
+          <tr><th style="min-width:240px">{{ t('item') }}</th><th style="width:150px">{{ t('unit') }}</th>
+            <th style="width:100px">{{ t('qty') }}</th><th style="width:130px">{{ t('price') }}</th>
+            <th class="num" style="width:130px">{{ t('total') }}</th><th style="width:44px"></th></tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot><tr><td colspan="4">{{ t('total') }}</td><td class="num" id="sumTotal">0.00</td><td></td></tr></tfoot>
+      </table>
+    </div>
+    <div class="card-body row">
+      <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('sale_orders' if itype == 'sale' else 'purchase_orders') }}">{{ t('cancel') }}</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var ITEMS = {{ items_json|safe }};
+  var IS_SALE = {{ 'true' if itype == 'sale' else 'false' }};
+  var body = document.querySelector('#lines tbody');
+  function esc(text) { return String(text == null ? '' : text).replace(/</g, '&lt;'); }
+  function addRow() {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><select class="select" name="item_id"></select></td>' +
+      '<td><select class="select" name="unit_id"></select></td>' +
+      '<td><input class="input mono" type="number" step="any" name="qty" value="1"></td>' +
+      '<td><input class="input mono" type="number" step="any" name="price" value="0"></td>' +
+      '<td class="num line-total">0.00</td>' +
+      '<td class="act"><button class="btn btn-sm btn-ghost" type="button" data-remove>&times;</button></td>';
+    body.appendChild(tr);
+    tr.querySelector('[name=item_id]').innerHTML = '<option value="">—</option>' + ITEMS.map(function (item) {
+      return '<option value="' + item.id + '">' + esc(item.name) + '</option>';
+    }).join('');
+    fillUnits(tr);
+    return tr;
+  }
+  function fillUnits(tr) {
+    var id = tr.querySelector('[name=item_id]').value;
+    var item = ITEMS.filter(function (i) { return String(i.id) === String(id); })[0];
+    var select = tr.querySelector('[name=unit_id]');
+    select.innerHTML = (item ? item.units : []).map(function (unit) {
+      return '<option value="' + unit.id + '">' + esc(unit.name) + '</option>';
+    }).join('') || '<option value="">—</option>';
+    var price = item ? (IS_SALE ? item.sale_price : item.purchase_price) : 0;
+    if (item && item.units.length) {
+      var base = item.units.filter(function (u) { return parseFloat(u.factor) === 1; })[0] || item.units[0];
+      price = IS_SALE ? (base.sale_price || price) : (base.purchase_price || price);
+      select.value = base.id;
+    }
+    tr.querySelector('[name=price]').value = price || 0;
+    recalc();
+  }
+  function recalc() {
+    var total = 0;
+    [].forEach.call(body.querySelectorAll('tr'), function (tr) {
+      var qty = parseFloat(tr.querySelector('[name=qty]').value) || 0;
+      var price = parseFloat(tr.querySelector('[name=price]').value) || 0;
+      var line = Math.round(qty * price * 100) / 100;
+      tr.querySelector('.line-total').textContent = line.toFixed(2);
+      total += line;
+    });
+    document.getElementById('sumTotal').textContent = total.toFixed(2);
+  }
+  body.addEventListener('change', function (event) {
+    var row = event.target.closest('tr');
+    if (event.target.name === 'item_id') fillUnits(row);
+    recalc();
+  });
+  body.addEventListener('input', recalc);
+  body.addEventListener('click', function (event) {
+    if (event.target.closest('[data-remove]')) { event.target.closest('tr').remove(); recalc(); }
+  });
+  document.getElementById('addLine').addEventListener('click', addRow);
+  addRow();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'print_base.html' %}
+{% block toolbar %}
+<a class="btn" href="{{ url_for('vouchers') }}">{{ t('back') }}</a>
+{% endblock %}
+{% block doc %}
+<div class="sheet-head">
+  <div class="sheet-company">
+    {% if company.logo %}<img class="sheet-logo" src="/uploads/{{ company.logo }}" alt="">{% endif %}
+    <h2>{{ company.name or 'Sanadex.wanis.online' }}</h2>
+    <p>{{ company.address or '' }}{% if company.phone %} · {{ company.phone }}{% endif %}</p>
+  </div>
+  <div class="doc-title">
+    <h3>{{ t('receipt') if row.vtype == 'receipt' else t('payment') }}</h3>
+    <div class="doc-no">{{ t('number') }}: {{ row.number }}</div>
+    <div class="doc-meta">{{ t('date') }}: {{ row.vdate }}</div>
+  </div>
+</div>
+<div class="party-bar">
+  <div><div class="k">{{ t('amount') }}</div>
+    <div style="font-size:20px;font-weight:800">{{ row.amount|money }} {{ company.currency }}</div></div>
+  <div><div class="k">{{ t('treasury') }}</div><div>{{ treasury.name }}</div></div>
+  <div><div class="k">{{ t('party') }}</div><div>{{ party.name or '—' }}</div>
+    <div class="tiny">{{ party.phone or '' }}</div></div>
+</div>
+<table class="items-table">
+  <tbody>
+    <tr><th style="width:140px">{{ t('description') }}</th><td>{{ row.note or '—' }}</td></tr>
+    <tr><th>{{ t('voucher_type') }}</th><td>{{ t('receipt') if row.vtype == 'receipt' else t('payment') }}</td></tr>
+    <tr><th>{{ t('amount') }}</th><td>{{ row.amount|money }}</td></tr>
+  </tbody>
+</table>
+<div class="signatures"><div><div class="line">{{ t('signature_receiver') }}</div></div>
+  <div><div class="line">{{ t('signature_accountant') }}</div></div></div>
+{% endblock %}

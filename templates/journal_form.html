@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('journals') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" action="{{ url_for('journal_new') }}" class="stack">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('new_journal') }}</span>
+      <div class="card-actions"><button class="btn btn-sm" type="button" id="addLine">{{ icon('plus')|safe }} {{ t('add_line') }}</button></div>
+    </div>
+    <div class="card-body">
+      <div class="form-grid" style="margin-bottom:14px">
+        <div class="span-3 field"><label class="label" for="jdate">{{ t('date') }}</label>
+          <input class="input" id="jdate" type="date" name="jdate" value="{{ now }}"></div>
+        <div class="span-5 field"><label class="label" for="note">{{ t('description') }}</label>
+          <input class="input" id="note" name="note"></div>
+        <div class="span-4 field"><label class="label" for="ref">{{ t('reference') }}</label>
+          <input class="input" id="ref" name="ref"></div>
+      </div>
+      <div class="table-wrap">
+        <table class="table" id="lines">
+          <thead><tr><th style="min-width:260px">{{ t('account_name') }}</th><th style="width:150px">{{ t('debit') }}</th>
+            <th style="width:150px">{{ t('credit') }}</th><th>{{ t('notes') }}</th><th style="width:44px"></th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td>{{ t('total') }}</td><td class="num" id="sumDebit">0.00</td>
+            <td class="num" id="sumCredit">0.00</td><td colspan="2" id="balanceState" class="tiny"></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+        <a class="btn btn-ghost" href="{{ url_for('journals') }}">{{ t('cancel') }}</a>
+        <span class="spacer"></span>
+        <span class="tiny muted" id="balanceHint">{{ t('journal_balanced') }}</span>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var ACCOUNTS = {{ accounts|tojson }};
+  var body = document.querySelector('#lines tbody');
+  function esc(text) { return String(text == null ? '' : text).replace(/</g, '&lt;'); }
+  function addRow() {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><select class="select" name="account_id"><option value="">—</option>' +
+      ACCOUNTS.map(function (a) { return '<option value="' + a.id + '">' + esc(a.code + ' · ' + a.name) + '</option>'; }).join('') +
+      '</select></td>' +
+      '<td><input class="input mono" type="number" step="any" name="debit" value="0"></td>' +
+      '<td><input class="input mono" type="number" step="any" name="credit" value="0"></td>' +
+      '<td><input class="input" name="line_note"></td>' +
+      '<td class="act"><button class="btn btn-sm btn-ghost" type="button" data-remove>&times;</button></td>';
+    body.appendChild(tr);
+    return tr;
+  }
+  function recalc() {
+    var debit = 0, credit = 0;
+    [].forEach.call(body.querySelectorAll('tr'), function (tr) {
+      debit += parseFloat(tr.querySelector('[name=debit]').value) || 0;
+      credit += parseFloat(tr.querySelector('[name=credit]').value) || 0;
+    });
+    document.getElementById('sumDebit').textContent = debit.toFixed(2);
+    document.getElementById('sumCredit').textContent = credit.toFixed(2);
+    var balanced = Math.abs(debit - credit) < 0.01;
+    var state = document.getElementById('balanceState');
+    var hint = document.getElementById('balanceHint');
+    state.textContent = balanced ? '✓' : (debit - credit).toFixed(2);
+    state.style.color = balanced ? 'var(--ok)' : 'var(--danger)';
+    hint.textContent = balanced ? '' : '{{ t('journal_unbalanced') }}';
+    hint.style.color = balanced ? '' : 'var(--danger)';
+  }
+  body.addEventListener('input', recalc);
+  body.addEventListener('click', function (event) {
+    if (event.target.closest('[data-remove]')) { event.target.closest('tr').remove(); recalc(); }
+  });
+  document.getElementById('addLine').addEventListener('click', function () { addRow(); recalc(); });
+  addRow(); addRow();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('attendance_bulk') }}">{{ icon('check')|safe }} {{ t('attendance') }}</a>
+{% endblock %}
+{% block content %}
+<div class="grid grid-side">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('payroll') }} — {{ month }}</span>
+      <div class="card-actions">
+        <form method="get" class="row">
+          <input class="input" type="month" name="month" value="{{ month }}" data-autosubmit style="max-width:160px">
+        </form>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ t('employee') }}</th><th>{{ t('job_role') }}</th>
+          <th class="num">{{ t('att_days') }}</th><th class="num">{{ t('base_salary') }}</th>
+          <th class="num">{{ t('bonus') }}</th><th class="num">{{ t('deduction') }}</th>
+          <th class="num">{{ t('advance') }}</th><th class="num">{{ t('net_salary') }}</th></tr></thead>
+        <tbody>
+          {% for employee in employees %}
+          <tr>
+            <td>{{ employee.name }}</td>
+            <td class="tiny muted">{{ employee.job_name or '—' }}</td>
+            <td class="num">{{ employee.att_days }}</td>
+            <td class="num">{{ employee.base|money }}</td>
+            <td class="num">{{ employee.bonus|money }}</td>
+            <td class="num">{{ employee.deduction|money }}</td>
+            <td class="num">{{ employee.advance|money }}</td>
+            <td class="num strong">{{ employee.net|money }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8"><div class="empty">{{ icon('id')|safe }}<b>{{ t('no_data') }}</b>
+            <a class="btn btn-primary btn-sm" href="{{ url_for('employees') }}">{{ t('new_employee') }}</a></div></td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><td colspan="7">{{ t('total') }}</td><td class="num">{{ total|money }}</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="card-body">
+      <form method="post" class="row">
+        <input type="hidden" name="month" value="{{ month }}">
+        <input type="hidden" name="action" value="run">
+        <input class="input" name="note" placeholder="{{ t('notes') }}" style="max-width:320px">
+        <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('payroll_run') }}</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('payroll_runs') }}</span></div>
+    <div class="table-wrap">
+      <table class="table table-sm">
+        <tbody>
+          {% for run in runs %}
+          <tr>
+            <td><a href="{{ url_for('payroll_view', rid=run.id) }}" class="mono-sm">{{ run.month }}</a>
+              <div class="tiny muted">{{ run.run_date }} · {{ run.username or '' }}</div></td>
+            <td class="num">{{ run.total_net|money }}</td>
+            <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('payroll_view', rid=run.id) }}">{{ icon('eye')|safe }}</a></td>
+          </tr>
+          {% else %}<tr><td class="muted tiny">{{ t('no_data') }}</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

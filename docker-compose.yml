@@ -1,0 +1,23 @@
+services:
+  sanadex:
+    build: .
+    image: sanadex-wanis-online:latest
+    container_name: sanadex
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SANADEX_DB_PATH: /data/sanadex.db
+      SANADEX_BACKUP_DIR: /data/backups
+      SANADEX_UPLOAD_DIR: /data/uploads
+      PORT: "8000"
+    # Only the reverse proxy (nginx/Caddy) should reach the app.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

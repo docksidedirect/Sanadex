@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('items') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" class="card">
+  <div class="toolbar">
+    <div class="search-box">
+      {{ icon('search')|safe }}
+      <input class="input" type="search" data-filter="#barcodeTable" placeholder="{{ t('search') }}">
+    </div>
+    <label class="field" style="flex-direction:row;align-items:center;gap:8px">
+      <span class="tiny muted">{{ t('labels_count') }}</span>
+      <input class="input mono" type="number" min="1" max="100" name="count" value="1" style="width:80px">
+    </label>
+    <label class="field" style="flex-direction:row;align-items:center;gap:8px">
+      <span class="tiny muted">{{ t('label_size') }}</span>
+      <select class="select" name="size" style="width:150px">
+        <option value="small">{{ t('size_small') }}</option>
+        <option value="large">{{ t('size_large') }}</option>
+      </select>
+    </label>
+    <span class="spacer"></span>
+    <button class="btn btn-primary" type="submit">{{ icon('print')|safe }} {{ t('print_labels') }}</button>
+  </div>
+  <div class="table-wrap">
+    <table class="table" id="barcodeTable">
+      <thead><tr><th style="width:40px"><input type="checkbox" onclick="document.querySelectorAll('.pick').forEach(c=>c.checked=this.checked)"></th>
+        <th>{{ t('code') }}</th><th>{{ t('item') }}</th><th>{{ t('category') }}</th>
+        <th class="num">{{ t('sale_price') }}</th><th class="num">{{ t('units') }}</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><input class="pick" type="checkbox" name="ids" value="{{ row.id }}"
+                     {{ 'checked' if request.q('item')|string == row.id|string }}></td>
+          <td class="mono-sm">{{ row.code or '—' }}</td>
+          <td>{{ row.name }}</td>
+          <td class="tiny">{{ row.category or '—' }}</td>
+          <td class="num">{{ row.sale_price|money }}</td>
+          <td class="num">{{ row.units }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6"><div class="empty">{{ icon('barcode')|safe }}<b>{{ t('no_data') }}</b></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-body row">
+    <button class="btn btn-primary" type="submit">{{ icon('print')|safe }} {{ t('print_labels') }}</button>
+    <span class="tiny muted">{{ t('select_items') }}</span>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('installments') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<div class="kpis" style="margin-bottom:16px">
+  <div class="kpi"><span class="kpi-label">{{ t('customer') }}</span>
+    <span class="kpi-value" style="font-size:16px">{{ plan.customer_name }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('plan_total') }}</span><span class="kpi-value">{{ plan.total|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('paid') }}</span><span class="kpi-value">{{ paid|money }}</span></div>
+  <div class="kpi"><span class="kpi-label">{{ t('remaining') }}</span>
+    <span class="kpi-value" style="color:var(--accent)">{{ remaining|money }}</span></div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-title">{{ t('plan_schedule') }}</span>
+    <div class="card-actions"><span class="tiny muted">{{ t('customer_balance_note') }}: {{ plan.customer_balance|money }}</span></div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>#</th><th>{{ t('due_date') }}</th><th class="num">{{ t('installment_amount') }}</th>
+        <th>{{ t('status') }}</th><th>{{ t('date') }}</th><th class="act">{{ t('actions') }}</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{{ 'warn-row' if not row.paid and row.due_date < today }}">
+          <td class="mono-sm">{{ loop.index }}</td>
+          <td class="mono-sm">{{ row.due_date }}</td>
+          <td class="num">{{ row.amount|money }}</td>
+          <td>
+            {% if row.paid %}<span class="badge b-ok">{{ t('installment_paid') }}</span>
+            {% elif row.due_date < today %}<span class="badge b-danger">{{ t('overdue') }}</span>
+            {% else %}<span class="badge b-neutral">{{ t('installment_unpaid') }}</span>{% endif %}
+          </td>
+          <td class="mono-sm">{{ row.paid_date or '—' }}</td>
+          <td class="act">
+            {% if not row.paid %}
+            <form method="post" action="{{ url_for('installment_pay', iid=row.id) }}" class="row" style="justify-content:flex-end">
+              <input class="input mono" type="number" step="any" name="amount" value="{{ row.amount }}" style="width:110px">
+              <select class="select" name="treasury_id" style="width:150px">
+                {% for treasury in treasuries %}<option value="{{ treasury.id }}">{{ treasury.name }}</option>{% endfor %}
+              </select>
+              <button class="btn btn-sm btn-ok" type="submit">{{ icon('check')|safe }} {{ t('installment_pay') }}</button>
+            </form>
+            {% else %}<span class="badge b-ok">{{ row.paid_amount|money }}</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

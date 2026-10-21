@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn btn-primary" href="{{ url_for('sale_invoice_new') }}">{{ icon('plus')|safe }} {{ t('new_sale_invoice') }}</a>
+<a class="btn" href="{{ url_for('purchase_invoice_new') }}">{{ icon('truck')|safe }} {{ t('new_purchase_invoice') }}</a>
+{% endblock %}
+{% block content %}
+<div class="kpis" style="margin-bottom:18px">
+  {% for card in cards %}
+  <a class="kpi" href="{{ url_for(card.route) }}">
+    <span class="kpi-label">{{ t(card.label) }}</span>
+    <span class="kpi-value">
+      {% if card.kind == 'money' %}{{ card.value|money }}{% if currency %}&nbsp;<small>{{ currency }}</small>{% endif %}
+      {% else %}{{ card.value|num }}{% endif %}
+    </span>
+    <span class="kpi-foot">{{ icon('arrow-right')|safe }} {{ t('view_all') }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+{% if ask_demo %}
+<div class="card" style="margin-bottom:18px;border-inline-start:3px solid var(--accent)">
+  <div class="card-body row between">
+    <div>
+      <b>{{ t('demo_data') }}</b>
+      <p class="tiny muted" style="margin:2px 0 0">{{ t('demo_hint') }}</p>
+    </div>
+    <form method="post" action="{{ url_for('demo_load') }}">
+      <button class="btn btn-primary btn-sm">{{ icon('plus')|safe }} {{ t('demo_load') }}</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-side" style="margin-bottom:18px">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('sales_7d') }}</span>
+      <div class="card-actions">
+        <a class="btn btn-sm btn-ghost" href="{{ url_for('report_pl') }}">{{ t('report_pl') }}</a>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="bars">
+        {% for point in trend %}
+        <div class="bar" title="{{ point.date }} — {{ point.value|money }}">
+          <span class="bar-value">{{ point.value|num }}</span>
+          <span class="bar-fill" style="height: {{ point.pct if point.pct > 2 else 2 }}%"></span>
+          <span class="bar-label">{{ point.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('best_sellers') }}</span>
+      <div class="card-actions"><a class="btn btn-sm btn-ghost" href="{{ url_for('report_sellers') }}">{{ t('view_all') }}</a></div>
+    </div>
+    <div class="card-body">
+      {% if top %}
+      <div class="stack">
+        {% for item in top %}
+        <div class="bullet">
+          <div class="bullet-top"><b class="truncate">{{ item.n }}</b><span>{{ item.tq|num }}</span></div>
+          <div class="progress"><div class="progress-bar" style="width: {{ item.pct }}%"></div></div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="muted tiny">{{ t('no_data') }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-side">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('alerts_title') }}</span>
+      <div class="card-actions"><span class="badge b-neutral">{{ alerts|length }}</span></div>
+    </div>
+    <div class="feed">
+      {% for alert in alerts %}
+      <a class="feed-item {{ alert.tone }}" href="{{ url_for(alert.route) }}">
+        <span class="feed-icon">{{ icon(alert.icon)|safe }}</span>
+        <span>{{ alert.text }}</span>
+      </a>
+      {% else %}
+      <div class="empty" style="margin:14px">
+        {{ icon('check')|safe }}
+        <b>{{ t('no_alerts') }}</b>
+        <p>{{ t('tip_backup') }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('recent_invoices') }}</span>
+      <div class="card-actions"><a class="btn btn-sm btn-ghost" href="{{ url_for('sale_invoices') }}">{{ t('view_all') }}</a></div>
+    </div>
+    <div class="table-wrap">
+      <table class="table table-sm">
+        <tbody>
+        {% for row in recent %}
+        <tr>
+          <td><a class="mono-sm" href="{{ url_for('invoice_view', iid=row.id) }}">{{ row.number }}</a>
+            <div class="tiny muted">{{ row.idate }} · {{ row.party or '—' }}</div></td>
+          <td class="num">{{ row.net|money }}</td>
+          <td class="act">
+            {% set tone = 'b-ok' if row.status == 'paid' else ('b-warn' if row.status == 'partial' else ('b-danger' if row.status == 'cancelled' else 'b-info')) %}
+            <span class="badge {{ tone }}">{{ t('status_' + row.status) }}</span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3"><div class="empty">{{ icon('file-text')|safe }}<b>{{ t('no_data') }}</b>
+          <p>{{ t('no_data_hint') }}</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

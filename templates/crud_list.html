@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block actions %}
+  {% if crud.can_add %}<a class="btn btn-primary" href="{{ url_for(crud.key + '_new') }}">{{ icon('plus')|safe }} {{ t('add_new') }}</a>{% endif %}
+  {% if crud.exportable %}<a class="btn" href="{{ url_for(crud.key + '_export') }}">{{ icon('download')|safe }} {{ t('export_excel') }}</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="toolbar">
+    <form method="get" action="{{ url_for(crud.key) }}">
+      {% if crud.search %}
+      <div class="search-box">
+        {{ icon('search')|safe }}
+        <input class="input" type="search" name="s" value="{{ search }}" placeholder="{{ t('search') }}">
+      </div>
+      {% endif %}
+      {% for param, label, expr, options in crud.filters %}
+      <select class="select" name="{{ param }}" data-autosubmit style="max-width:190px">
+        <option value="">{{ t(label) }}: {{ t('all') }}</option>
+        {% for value, option_label in options %}
+        <option value="{{ value }}" {{ 'selected' if filter_values.get(param) == value|string }}>{{ t(option_label) }}</option>
+        {% endfor %}
+      </select>
+      {% endfor %}
+      <button class="btn btn-sm" type="submit">{{ icon('filter')|safe }} {{ t('apply') }}</button>
+      {% if search or filter_values.values()|select|list %}
+      <a class="btn btn-sm btn-ghost" href="{{ url_for(crud.key) }}">{{ t('reset') }}</a>
+      {% endif %}
+      <span class="spacer"></span>
+      <span class="tiny muted">{{ t('showing') }} {{ rows|length }} {{ t('of') }} {{ total }}</span>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          {% for col in crud.list_cols %}
+          <th class="{{ 'num' if col.align == 'end' }}">{{ t(col.label) }}</th>
+          {% endfor %}
+          <th class="act">{{ t('actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for col in crud.list_cols %}
+          <td class="{{ 'num' if col.align == 'end' }}">{{ row[col.key + '_v'] }}</td>
+          {% endfor %}
+          <td class="act">
+            {% for action in crud.row_actions %}
+            <a class="btn btn-sm btn-ghost" href="{{ action.url(request, row) }}"
+               {% if action.get('confirm') %}data-confirm="{{ t(action.confirm) }}"{% endif %}>{{ t(action.label) }}</a>
+            {% endfor %}
+            {% if crud.can_edit %}
+            <a class="btn btn-sm btn-ghost" href="{{ url_for(crud.key + '_edit', rid=row.id) }}"
+               title="{{ t('edit') }}">{{ icon('edit')|safe }}</a>
+            {% endif %}
+            {% if crud.can_delete %}
+            <form class="inline-form" method="post" action="{{ url_for(crud.key + '_del', rid=row.id) }}"
+                  data-confirm="{{ t('confirm_delete') }}">
+              <button class="btn btn-sm btn-ghost" type="submit" title="{{ t('delete') }}">{{ icon('trash')|safe }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ crud.list_cols|length + 1 }}">
+          <div class="empty">
+            {{ icon(crud.icon)|safe }}
+            <b>{{ t('no_data') }}</b>
+            <p>{{ t('no_data_hint') }}</p>
+            {% if crud.can_add %}
+            <a class="btn btn-primary btn-sm" href="{{ url_for(crud.key + '_new') }}">{{ icon('plus')|safe }} {{ t('add_new') }}</a>
+            {% endif %}
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pager.pages > 1 %}
+  <div class="pager">
+    <span>{{ t('page') }} {{ pager.page }} / {{ pager.pages }}</span>
+    <span class="spacer"></span>
+    {% if pager.prev %}<a href="{{ pager.prev }}">‹</a>{% endif %}
+    <span class="pg">{{ pager.page }}</span>
+    {% if pager.next %}<a href="{{ pager.next }}">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

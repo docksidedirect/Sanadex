@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block actions %}
+<a class="btn" href="{{ url_for('items') }}">{{ icon('arrow-left')|safe }} {{ t('back') }}</a>
+{% endblock %}
+{% block content %}
+<form method="post" class="stack" enctype="multipart/form-data">
+  <div class="card">
+    <div class="card-head"><span class="card-title">{{ t('edit_item' if row.get('id') else 'new_item') }}</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="span-3 field">
+          <label class="label" for="code">{{ t('code') }}</label>
+          <input class="input mono" id="code" name="code" value="{{ row.get('code', '') }}">
+        </div>
+        <div class="span-5 field">
+          <label class="label" for="name">{{ t('item_name') }} <span class="req">*</span></label>
+          <input class="input" id="name" name="name" value="{{ row.get('name', '') }}" required>
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="name_en">{{ t('item_name_en') }}</label>
+          <input class="input" id="name_en" name="name_en" value="{{ row.get('name_en', '') }}">
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="category">{{ t('category') }}</label>
+          <input class="input" id="category" name="category" value="{{ row.get('category', '') }}" list="catList">
+          <datalist id="catList">{% for category in categories %}<option value="{{ category }}">{% endfor %}</datalist>
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="brand">{{ t('brand') }}</label>
+          <input class="input" id="brand" name="brand" value="{{ row.get('brand', '') }}">
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="purchase_price">{{ t('purchase_price') }}</label>
+          <input class="input mono" id="purchase_price" type="number" step="any" name="purchase_price"
+                 value="{{ row.get('purchase_price', 0) }}">
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="sale_price">{{ t('sale_price') }}</label>
+          <input class="input mono" id="sale_price" type="number" step="any" name="sale_price"
+                 value="{{ row.get('sale_price', 0) }}">
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="min_price">{{ t('min_price') }}</label>
+          <input class="input mono" id="min_price" type="number" step="any" name="min_price"
+                 value="{{ row.get('min_price', 0) }}">
+        </div>
+        <div class="span-4 field">
+          <label class="label" for="reorder_level">{{ t('reorder_level') }}</label>
+          <input class="input mono" id="reorder_level" type="number" step="any" name="reorder_level"
+                 value="{{ row.get('reorder_level', 0) }}">
+        </div>
+        <div class="span-4 field">
+          <span class="label">{{ t('status') }}</span>
+          <label class="check"><input type="checkbox" name="has_expiry" {{ 'checked' if row.get('has_expiry') }}>
+            <span>{{ t('has_expiry') }}</span></label>
+        </div>
+        <div class="span-4 field">
+          <span class="label">{{ t('active') }}</span>
+          <label class="check"><input type="checkbox" name="active" {{ 'checked' if row.get('active', 1) }}>
+            <span>{{ t('active') }}</span></label>
+        </div>
+        <div class="span-12 field">
+          <label class="label" for="notes">{{ t('notes') }}</label>
+          <textarea class="textarea" id="notes" name="notes" style="min-height:56px">{{ row.get('notes', '') }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">{{ t('item_units_title') }}</span>
+      <div class="card-actions">
+        <button class="btn btn-sm" type="button" id="addUnit">{{ icon('plus')|safe }} {{ t('add_unit') }}</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <p class="tiny muted" style="margin-top:0">{{ t('item_units_hint') }}</p>
+      <div class="table-wrap">
+        <table class="table table-sm" id="unitsTable">
+          <thead><tr><th style="min-width:150px">{{ t('unit_name') }}</th><th style="width:120px">{{ t('unit_factor') }}</th>
+            <th style="width:170px">{{ t('unit_barcode') }}</th><th style="width:120px">{{ t('sale_price') }}</th>
+            <th style="width:120px">{{ t('purchase_price') }}</th><th style="width:40px"></th></tr></thead>
+          <tbody>
+            {% for unit in units %}
+            <tr>
+              <td><input type="hidden" name="u_id" value="{{ unit.id }}"><input class="input" name="u_name" value="{{ unit.name }}"></td>
+              <td><input class="input mono" type="number" step="any" name="u_factor" value="{{ unit.factor }}"></td>
+              <td><input class="input mono" name="u_barcode" value="{{ unit.barcode or '' }}"></td>
+              <td><input class="input mono" type="number" step="any" name="u_sprice" value="{{ unit.sale_price or 0 }}"></td>
+              <td><input class="input mono" type="number" step="any" name="u_pprice" value="{{ unit.purchase_price or 0 }}"></td>
+              <td class="act"><button class="btn btn-sm btn-ghost" type="button" data-remove>&times;</button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save') }}</button>
+    <a class="btn btn-ghost" href="{{ url_for('items') }}">{{ t('cancel') }}</a>
+  </div>
+</form>
+
+{% if row.get('id') %}
+<div class="card" style="margin-top:16px">
+  <div class="card-head"><span class="card-title">{{ t('stock_adjust') }}</span></div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('item_adjust', rid=row.id) }}" class="row">
+      <select class="select" name="store_id" style="max-width:200px">
+        {% for store in stores %}<option value="{{ store.id }}">{{ store.name }}</option>{% endfor %}
+      </select>
+      <select class="select" name="direction" style="max-width:160px">
+        <option value="in">{{ t('movement_in') }}</option>
+        <option value="out">{{ t('movement_out') }}</option>
+      </select>
+      <input class="input mono" type="number" step="any" name="qty" placeholder="{{ t('qty') }}" style="max-width:120px">
+      <input class="input" name="note" placeholder="{{ t('notes') }}" style="max-width:260px">
+      <button class="btn" type="submit">{{ icon('save')|safe }} {{ t('apply') }}</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var body = document.querySelector('#unitsTable tbody');
+  document.getElementById('addUnit').addEventListener('click', function () {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input class="input" name="u_name"></td>' +
+      '<td><input class="input mono" type="number" step="any" name="u_factor" value="1"></td>' +
+      '<td><input class="input mono" name="u_barcode"></td>' +
+      '<td><input class="input mono" type="number" step="any" name="u_sprice" value="0"></td>' +
+      '<td><input class="input mono" type="number" step="any" name="u_pprice" value="0"></td>' +
+      '<td class="act"><button class="btn btn-sm btn-ghost" type="button" data-remove>&times;</button></td>';
+    body.appendChild(tr);
+  });
+  body.addEventListener('click', function (event) {
+    if (event.target.closest('[data-remove]')) event.target.closest('tr').remove();
+  });
+})();
+</script>
+{% endblock %}

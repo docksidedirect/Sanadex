@@ -1,0 +1,38 @@
+{% extends 'print_base.html' %}
+{% block toolbar %}
+<a class="btn" href="{{ url_for('transfers') }}">{{ t('back') }}</a>
+{% endblock %}
+{% block doc %}
+<div class="sheet-head">
+  <div class="sheet-company">
+    {% if company.logo %}<img class="sheet-logo" src="/uploads/{{ company.logo }}" alt="">{% endif %}
+    <h2>{{ company.name or 'Sanadex.wanis.online' }}</h2>
+    <p>{{ company.address or '' }}{% if company.phone %} · {{ company.phone }}{% endif %}</p>
+  </div>
+  <div class="doc-title">
+    <h3>{{ t('transfer_print') }}</h3>
+    <div class="doc-no">{{ t('transfer_no') }}: {{ transfer.number }}</div>
+    <div class="doc-meta">{{ t('date') }}: {{ transfer.tdate }}</div>
+  </div>
+</div>
+<div class="party-bar">
+  <div><div class="k">{{ t('from_store') }}</div><div><b>{{ from_store.name }}</b></div>
+    <div>{{ from_store.location or '' }}</div></div>
+  <div><div class="k">{{ t('to_store') }}</div><div><b>{{ to_store.name }}</b></div>
+    <div>{{ to_store.location or '' }}</div></div>
+</div>
+<table class="items-table">
+  <thead><tr><th style="width:28px">#</th><th>{{ t('item') }}</th><th>{{ t('unit') }}</th>
+    <th style="width:90px">{{ t('qty') }}</th></tr></thead>
+  <tbody>
+    {% for line in lines %}
+    <tr><td>{{ loop.index }}</td><td>{{ line.item_name }}
+      {% if line.item_code %}<span class="qr-note">({{ line.item_code }})</span>{% endif %}</td>
+      <td>{{ line.unit_name or '—' }}</td><td class="num">{{ line.qty|num }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if transfer.note %}<div class="terms">{{ transfer.note }}</div>{% endif %}
+<div class="signatures"><div><div class="line">{{ t('signature_receiver') }}</div></div>
+  <div><div class="line">{{ t('signature_accountant') }}</div></div></div>
+{% endblock %}
