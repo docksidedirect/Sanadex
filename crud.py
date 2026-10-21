@@ -326,6 +326,12 @@ def f_map(key, mapping):
     return fmt
 
 
+def f_active(key='active'):
+    def fmt(req, row):
+        return T(req, 'active') if row.get(key) else T(req, 'pending_approval')
+    return fmt
+
+
 def f_date(key='date'):
     def fmt(req, row):
         return row.get(key) or '—'
@@ -824,6 +830,6 @@ Crud('users', 'users', 'users', [
      L('role_id', 'role', fmt=f_lookup('roles', 'role_id')),
      L('treasury_id', 'assigned_treasury', fmt=f_lookup('treasuries', 'treasury_id')),
      L('store_id', 'assigned_store', fmt=f_lookup('stores', 'store_id')),
-     L('is_admin', 'is_admin', fmt=f_bool('is_admin')), L('active', 'active', fmt=f_bool('active'))],
+     L('is_admin', 'is_admin', fmt=f_bool('is_admin')), L('active', 'active', fmt=f_active('active'))],
     perm='p_settings', subtitle='users_sub', search=['username', 'full_name', 'phone'], icon='users',
     delete_guard=deny_admin_user_delete)

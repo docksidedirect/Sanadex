@@ -171,6 +171,7 @@ def cmd_restore(args):
     if not os.path.isfile(path):
         print(f'File not found: {path}')
         sys.exit(1)
+    os.environ['SANADEX_FRESH'] = '1'  # we are replacing the database anyway
     _open(args.db, args.backup_dir, args.upload_dir)
     try:
         db.restore_backup(path)
@@ -235,12 +236,15 @@ def cmd_check(args):
 
 
 def cmd_init(args):
+    if getattr(args, 'fresh', False):
+        os.environ['SANADEX_FRESH'] = '1'
     conn = _open(args.db, args.backup_dir, args.upload_dir)
     _banner(conn)
     admin = db.one(conn, "SELECT id FROM users WHERE username='admin'")
     if not admin:
         _ensure_admin(conn, 'admin', 'admin123')
-        print('\nDefault login created: admin / admin123 (change it from Users).')
+        print('\nFirst administrator created — the password was printed above '
+              '(or read ADMIN_PASSWORD.txt). Change it from Users.')
     else:
         print('\nDatabase ready. If sign-in fails: python manage.py reset-admin')
     conn.close()
@@ -287,7 +291,10 @@ def build_parser():
     lic.set_defaults(func=cmd_license)
 
     sub.add_parser('check', help='verify the database integrity').set_defaults(func=cmd_check)
-    sub.add_parser('init', help='create/upgrade the database and default admin').set_defaults(func=cmd_init)
+    init = sub.add_parser('init', help='create/upgrade the database and first admin')
+    init.add_argument('--fresh', action='store_true',
+                      help='start an empty database even if backups of an older one exist')
+    init.set_defaults(func=cmd_init)
     return parser
 
 

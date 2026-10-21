@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}" data-theme="{{ theme }}" data-accent="{{ company.accent or 'clay' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t('signup') }} · Sanadex.wanis.online</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css?v=4">
+</head>
+<body>
+<div class="auth">
+  <aside class="auth-side">
+    <div class="auth-brand">
+      <span class="brand-mark">S</span>
+      <span><strong>Sanadex</strong><em>.wanis.online</em></span>
+    </div>
+    <div class="auth-copy">
+      <h1>{{ t('tagline') }}</h1>
+      <p>{{ t('signup_hint') }}</p>
+      <ul class="auth-points">
+        <li>{{ icon('box')|safe }} {{ t('items') }} · {{ t('stores') }} · {{ t('barcode_labels') }}</li>
+        <li>{{ icon('file-text')|safe }} {{ t('sales_invoices') }} · {{ t('purchase_invoices') }} · {{ t('report_tax') }}</li>
+        <li>{{ icon('wallet')|safe }} {{ t('treasuries') }} · {{ t('vouchers') }} · {{ t('cheques') }}</li>
+        <li>{{ icon('chart')|safe }} {{ t('reports') }} · {{ t('balance_sheet') }} · {{ t('report_pl') }}</li>
+      </ul>
+    </div>
+    <div class="auth-foot">Sanadex.wanis.online — {{ t('tagline_long') }}</div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <div class="auth-lang">
+        <a class="chip {{ 'is-on' if lang == 'ar' }}" href="{{ url_for('set_lang', code='ar') }}?next=/signup">العربية</a>
+        <a class="chip {{ 'is-on' if lang == 'en' }}" href="{{ url_for('set_lang', code='en') }}?next=/signup">English</a>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h2>{{ t('signup_title') }}</h2>
+          <p class="sub">{{ t('signup_hint') }}</p>
+
+          {% if not allowed %}
+          <div class="flash warning">{{ icon('info')|safe }}<div>{{ t('signup_disabled') }}</div></div>
+          {% else %}
+            {% if error %}<div class="flash danger" style="margin-bottom:12px">{{ error }}</div>{% endif %}
+            <form method="post" action="{{ url_for('signup') }}" data-busy="off" autocomplete="off">
+              <div class="field" style="margin-bottom:10px">
+                <label class="label" for="full_name">{{ t('full_name') }} <span class="req">*</span></label>
+                <input class="input" id="full_name" name="full_name" value="{{ form.get('full_name', '') }}" required>
+              </div>
+              <div class="field" style="margin-bottom:10px">
+                <label class="label" for="username">{{ t('username') }} <span class="req">*</span></label>
+                <input class="input" id="username" name="username" value="{{ form.get('username', '') }}"
+                       dir="ltr" autocomplete="username" required>
+                <span class="help">{{ t('signup_username_invalid') }}</span>
+              </div>
+              <div class="row" style="gap:10px;margin-bottom:10px">
+                <div class="field" style="flex:1">
+                  <label class="label" for="phone">{{ t('phone') }}</label>
+                  <input class="input" id="phone" name="phone" value="{{ form.get('phone', '') }}">
+                </div>
+                <div class="field" style="flex:1">
+                  <label class="label" for="email">{{ t('email') }}</label>
+                  <input class="input" id="email" name="email" type="email" value="{{ form.get('email', '') }}">
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:10px">
+                <label class="label" for="password">{{ t('password') }} <span class="req">*</span></label>
+                <input class="input" id="password" name="password" type="password" autocomplete="new-password" required>
+              </div>
+              <div class="field" style="margin-bottom:16px">
+                <label class="label" for="password2">{{ t('confirm_password') }} <span class="req">*</span></label>
+                <input class="input" id="password2" name="password2" type="password" autocomplete="new-password" required>
+              </div>
+              <button class="btn btn-primary btn-block btn-lg" type="submit">{{ t('signup_submit') }}</button>
+            </form>
+          {% endif %}
+
+          <p class="tiny" style="margin:16px 0 0;text-align:center">
+            {{ t('signup_have_account') }}
+            <a href="{{ url_for('login') }}" style="font-weight:700">{{ t('login') }}</a>
+          </p>
+        </div>
+      </div>
+      <p class="tiny muted" style="text-align:center;margin-top:14px">Sanadex.wanis.online</p>
+    </div>
+  </main>
+</div>
+<script src="/static/app.js?v=4"></script>
+</body>
+</html>

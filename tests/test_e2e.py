@@ -22,9 +22,19 @@ for suffix in ('', '-wal', '-shm'):
     except OSError:
         pass
 
+os.environ.setdefault('SANADEX_ADMIN_PASSWORD', 'admin123')
+os.environ.setdefault('SANADEX_FRESH', '1')
+
 import db  # noqa: E402
 db.DB_PATH = TEST_DB
-db.BACKUP_DIR = os.path.join(BASE, 'backups')
+TEST_BACKUPS = os.path.join(BASE, 'test-backups')
+TEST_UPLOADS = os.path.join(BASE, 'test-uploads')
+import shutil as _shutil  # noqa: E402
+for folder in (TEST_BACKUPS, TEST_UPLOADS):
+    _shutil.rmtree(folder, ignore_errors=True)
+    os.makedirs(folder, exist_ok=True)
+db.BACKUP_DIR = TEST_BACKUPS
+db.UPLOAD_DIR = TEST_UPLOADS
 db.init_db()
 
 import app  # noqa: E402
@@ -844,6 +854,85 @@ status, headers, body = seller.get('/customers')
 check('covered user sees no trial strip',
       status.startswith('200') and 'فترة تجريبية' not in body, status)
 
+
+# --------------------------------------------------------------------------- #
+section('public language switch and self sign-up')
+# --------------------------------------------------------------------------- #
+visitor = Client()
+status, headers, body = visitor.get('/login')
+check('login page starts in Arabic', 'مرحباً بعودتك' in body and 'dir="rtl"' in body)
+status, headers, body = visitor.get('/lang/en?next=/login')
+check('guest can switch the language before signing in', status.startswith('302'), status)
+status, headers, body = visitor.get('/login')
+check('login page now renders in English',
+      'Welcome back' in body and 'dir="ltr"' in body, body[:120])
+status, headers, body = visitor.get('/lang/ar?next=/login')
+status, headers, body = visitor.get('/login')
+check('guest can switch back to Arabic', 'مرحباً بعودتك' in body and 'dir="rtl"' in body)
+
+enable = conn()
+enable.execute('UPDATE company SET allow_signup=1 WHERE id=1')
+enable.execute("UPDATE licenses SET status='revoked' WHERE status='active'")
+enable.commit()
+enable.close()
+
+signup_client = Client()
+status, headers, body = signup_client.get('/signup')
+check('sign-up page is public',
+      status.startswith('200') and 'إنشاء حساب جديد' in body, status)
+check('login page links to sign-up', 'أنشئ حساباً' in visitor.get('/login')[2])
+
+new_account = {'full_name': 'New Cashier', 'username': 'cashier1', 'phone': '0100',
+               'email': 'cashier@example.com', 'password': 'Pass1234', 'password2': 'Pass1234'}
+status, headers, body = signup_client.post('/signup', new_account)
+pending_user = row("SELECT * FROM users WHERE username='cashier1'")
+check('sign-up creates a disabled (pending) account',
+      status.startswith('302') and pending_user and pending_user['active'] == 0,
+      pending_user and pending_user['active'])
+check('pending account is not an administrator', pending_user['is_admin'] == 0)
+check('admin is warned about the pending account', 'بانتظار موافقتك' in admin.get('/')[2])
+status, headers, body = admin.get('/users')
+check('users list marks pending accounts',
+      'cashier1' in body and 'بانتظار الموافقة' in body)
+
+pending_client = Client()
+status, headers, body = pending_client.post('/login',
+                                           {'username': 'cashier1', 'password': 'Pass1234'})
+check('pending account cannot sign in before approval', not status.startswith('302'), status)
+
+status, headers, body = signup_client.post('/signup', dict(new_account, username='cashier1'))
+check('duplicate username is rejected',
+      status.startswith('200') and 'مستخدم بالفعل' in body, status)
+status, headers, body = signup_client.post('/signup', dict(new_account, username='cashier2',
+                                                          password='123', password2='123'))
+check('short password is rejected', 'قصيرة' in body)
+status, headers, body = signup_client.post('/signup', dict(new_account, username='cashier2',
+                                                          password2='Different1'))
+check('password confirmation is enforced', 'غير متطابقتين' in body)
+
+admin.post(f"/users/{pending_user['id']}/edit", {
+    'username': 'cashier1', 'full_name': 'New Cashier', 'phone': '0100',
+    'email': 'cashier@example.com', 'role_id': '', 'treasury_id': '', 'store_id': '',
+    'lang': 'ar', 'is_admin': '', 'active': 'on', 'notes': ''})
+approved = row("SELECT * FROM users WHERE username='cashier1'")
+check('admin can approve the account from Users', approved['active'] == 1)
+status, headers, body = pending_client.post('/login',
+                                           {'username': 'cashier1', 'password': 'Pass1234'})
+check('approved account can sign in', status.startswith('302'), status)
+approved_state = license_module.user_state(conn(), row("SELECT * FROM users WHERE username='cashier1'"))
+check('approved account starts its 14-day trial', approved_state['state'] == 'trial', approved_state)
+
+disable = conn()
+disable.execute('UPDATE company SET allow_signup=0 WHERE id=1')
+disable.commit()
+disable.close()
+status, headers, body = signup_client.get('/signup')
+check('sign-up can be disabled by the admin',
+      'معطّل حالياً' in body, status)
+before = value("SELECT COUNT(*) c FROM users")
+signup_client.post('/signup', dict(new_account, username='cashier3'))
+check('disabled sign-up creates nothing', value("SELECT COUNT(*) c FROM users") == before)
+
 # --------------------------------------------------------------------------- #
 section('backup, download and restore')
 # --------------------------------------------------------------------------- #
@@ -912,8 +1001,8 @@ check('health endpoint is public and reports readiness',
       health_status.startswith('200') and health_payload.get('ok') is True and
       health_payload.get('app') == 'Sanadex.wanis.online', health_body[:200])
 
-required_assets = ('manage.py', 'run_prod.py', 'run-prod.bat', 'reset-admin.bat',
-                   'reset-admin.sh', 'Dockerfile', 'docker-compose.yml', '.env.example',
+required_assets = ('manage.py', 'run_prod.py', 'run-prod.bat',
+                   'Dockerfile', 'docker-compose.yml', '.env.example',
                    'DEPLOY.md', 'DEPLOY_AR.md', 'deploy/nginx.conf', 'deploy/Caddyfile',
                    'deploy/sanadex.service', '.dockerignore')
 missing_assets = [name for name in required_assets
@@ -926,6 +1015,29 @@ for suffix in ('', '-wal', '-shm'):
     except OSError:
         pass
 
+
+# missing database + existing backups must never silently reset the admin
+guard_dir = os.path.join(BASE, 'test-guard')
+_shutil.rmtree(guard_dir, ignore_errors=True)
+os.makedirs(os.path.join(guard_dir, 'backups'), exist_ok=True)
+with open(os.path.join(guard_dir, 'backups', 'sanadex-backup-guard.db'), 'wb') as handle:
+    handle.write(b'not-a-real-database')
+saved_db, saved_backups = db.DB_PATH, db.BACKUP_DIR
+saved_fresh = os.environ.pop('SANADEX_FRESH', None)
+db.DB_PATH = os.path.join(guard_dir, 'missing.db')
+db.BACKUP_DIR = os.path.join(guard_dir, 'backups')
+guard_raised = False
+try:
+    db.init_db()
+except RuntimeError as exc:
+    guard_raised = 'Refusing to start' in str(exc)
+finally:
+    db.DB_PATH, db.BACKUP_DIR = saved_db, saved_backups
+    if saved_fresh is not None:
+        os.environ['SANADEX_FRESH'] = saved_fresh
+    _shutil.rmtree(guard_dir, ignore_errors=True)
+check('a missing database with backups refuses to start empty', guard_raised)
+
 # --------------------------------------------------------------------------- #
 section('result')
 # --------------------------------------------------------------------------- #
@@ -934,6 +1046,8 @@ for suffix in ('', '-wal', '-shm'):
         os.remove(TEST_DB + suffix)
     except OSError:
         pass
+_shutil.rmtree(TEST_BACKUPS, ignore_errors=True)
+_shutil.rmtree(TEST_UPLOADS, ignore_errors=True)
 
 total = len(PASSED) + len(FAILED)
 print(f'\n===== {len(PASSED)} passed, {len(FAILED)} failed, {total} checks =====')

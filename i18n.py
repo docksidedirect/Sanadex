@@ -794,8 +794,8 @@ KEYS = {
     'edition_enterprise': ('متقدم', 'Enterprise'),
 
     # ---------------------------------------------------------------- recovery
-    'login_recovery': ('إذا فقدت كلمة المرور: أغلق البرنامج وشغّل reset-admin.bat من مجلد البرنامج.',
-                       'Forgot the password? Close the app and run reset-admin.bat from the app folder.'),
+    'login_recovery': ('إذا فقدت كلمة المرور: أغلق البرنامج ثم نفّذ الأمر: python manage.py reset-admin',
+                       'Forgot the password? Close the app and run: python manage.py reset-admin'),
     'health_ok': ('الخدمة تعمل', 'Service is healthy'),
 
     # ---------------------------------------------------------------- login helpers
@@ -835,6 +835,33 @@ KEYS = {
     'license_revoked_user': ('تم إلغاء ترخيص {name} وإعادته للتجربة.', 'Licence revoked for {name}; trial restarted.'),
     'license_admin_untouchable': ('المدير يملك ترخيصاً دائماً ولا يحتاج تجديداً.', 'Administrators already hold a lifetime licence.'),
     'license_no_users': ('لا يوجد مستخدمون غير المدير بعد.', 'No non-admin users yet.'),
+
+    # ---------------------------------------------------------------- self sign-up
+    'signup': ('إنشاء حساب', 'Create account'),
+    'signup_title': ('إنشاء حساب جديد', 'Create a new account'),
+    'signup_hint': ('يُنشأ الحساب موقوفاً حتى يوافق عليه مدير النظام، ثم تبدأ تجربتك 14 يوماً.',
+                    'The account is created disabled until an administrator approves it, then your 14-day trial starts.'),
+    'signup_submit': ('إرسال طلب الحساب', 'Request account'),
+    'signup_have_account': ('لديك حساب بالفعل؟', 'Already have an account?'),
+    'signup_pending_msg': ('تم إرسال طلبك — سيتمكن المدير من تفعيل الحساب قريباً.',
+                           'Request sent — an administrator will activate the account shortly.'),
+    'signup_pending_title': ('طلبك بانتظار الموافقة', 'Your request is pending approval'),
+    'signup_disabled': ('إنشاء الحسابات من الشاشة معطّل حالياً. اطلب من المدير إنشاء حساب لك.',
+                        'Self sign-up is disabled. Ask your administrator to create an account.'),
+    'signup_username_invalid': ('اسم المستخدم يجب أن يكون 3–32 حرفاً إنجليزياً أو رقماً (a-z 0-9 . _ -).',
+                                'Username must be 3–32 characters: a-z, 0-9, dot, underscore or dash.'),
+    'signup_username_taken': ('اسم المستخدم مستخدم بالفعل.', 'That username is already taken.'),
+    'signup_mismatch': ('كلمتا المرور غير متطابقتين.', 'The passwords do not match.'),
+    'signup_short_password': ('كلمة المرور قصيرة — 6 أحرف على الأقل.', 'Password too short — 6 characters minimum.'),
+    'no_account': ('ليس لديك حساب؟', 'No account yet?'),
+    'create_account': ('أنشئ حساباً', 'Create one'),
+    'pending_approval': ('بانتظار الموافقة', 'Pending approval'),
+    'pending_users_alert': ('{n} حساب بانتظار موافقتك من شاشة المستخدمين.',
+                            '{n} account(s) waiting for your approval in Users.'),
+    'settings_signup': ('السماح بطلب حساب من شاشة الدخول (بانتظار موافقة المدير)',
+                        'Allow account requests from the login page (pending admin approval)'),
+    'confirm_password': ('تأكيد كلمة المرور', 'Confirm password'),
+    'login_no_account': ('ليس لديك حساب؟', 'No account yet?'),
 
     # ---------------------------------------------------------------- misc
     'dashboard_today': ('اليوم', 'Today'),

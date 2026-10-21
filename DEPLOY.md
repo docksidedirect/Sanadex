@@ -256,7 +256,7 @@ Test a restore **before** you need it.
 
 | Symptom | Cause / fix |
 | --- | --- |
-| **"اسم المستخدم أو كلمة المرور غير صحيحة"** while typing `admin123` | Usually the browser autofilling an old saved password (the app used to run on the same `localhost:8000`). Clear the password box, type it by hand — or run `reset-admin.bat` (Windows) / `python manage.py reset-admin` and use the password it prints. |
+| **"اسم المستخدم أو كلمة المرور غير صحيحة"** while typing `admin123` | Usually the browser autofilling an old saved password (the app used to run on the same `localhost:8000`). Clear the password box, type it by hand — or run `python manage.py reset-admin` and use the password it prints. |
 | Locked out, no password | `python manage.py reset-admin` → prints the database path, sets a new password, re-enables the account. `python manage.py info` shows users and which database is in use. |
 | `Address already in use` / port 8000 busy | Another instance is running: `netstat -ano \| findstr :8000` then stop that PID (Task Manager, `stop-process -Id N`, `systemctl stop sanadex`). |
 | Login works but data looks empty | You are on a different database. The startup banner prints `Database: ...`; compare with `python manage.py info`. Move/copy the intended `sanadex.db` there. |

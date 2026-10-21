@@ -15,8 +15,15 @@ for suffix in ('', '-wal', '-shm'):
         os.remove(TEST_DB + suffix)
     except OSError:
         pass
+os.environ.setdefault('SANADEX_ADMIN_PASSWORD', 'admin123')
+os.environ.setdefault('SANADEX_FRESH', '1')
 import db  # noqa: E402
 db.DB_PATH = TEST_DB
+_SMOKE_BACKUPS = os.path.join(BASE, 'smoke-backups')
+import shutil as _shutil  # noqa: E402
+_shutil.rmtree(_SMOKE_BACKUPS, ignore_errors=True)
+os.makedirs(_SMOKE_BACKUPS, exist_ok=True)
+db.BACKUP_DIR = _SMOKE_BACKUPS
 db.init_db()
 import app  # noqa: E402
 
@@ -65,7 +72,7 @@ skip = {'login', 'logout', 'set_lang', 'set_theme', 'backup_download', 'gdrive_c
         'crud_edit', 'set_lang', 'sale_invoice_new', 'purchase_invoice_new', 'order_new',
         'item_import', 'barcode', 'transfer_new', 'voucher_new', 'journal_new',
         'license_download', 'license_generate', 'license_activate', 'license_revoke',
-        'license_user_action'}
+        'license_user_action', 'signup'}
 
 problems = []
 for name, methods, regex, pattern, fn in app.router.routes:
@@ -92,3 +99,4 @@ try:
     os.remove(TEST_DB)
 except OSError:
     pass
+_shutil.rmtree(_SMOKE_BACKUPS, ignore_errors=True)

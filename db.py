@@ -45,6 +45,7 @@ TABLES = {
         ('next_sale_no', 'int', 1), ('next_purchase_no', 'int', 1),
         ('next_order_no', 'int', 1), ('next_voucher_no', 'int', 1),
         ('tax_percent', 'real', 14), ('auto_backup', 'int', 0), ('backup_hours', 'int', 24),
+        ('allow_signup', 'int', 1),
         ('last_backup', 'ts', 0), ('expiry_alert_days', 'int', 30), ('restrict_scope', 'int', 1),
         ('gdrive_enabled', 'int', 0), ('gdrive_client_id', 'str', ''), ('gdrive_client_secret', 'str', ''),
         ('gdrive_refresh_token', 'text', ''), ('gdrive_folder_id', 'str', ''),
@@ -462,6 +463,64 @@ CHART_SEED = [
 ]
 
 
+INITIAL_ADMIN_FILE = os.path.join(BASE, 'ADMIN_PASSWORD.txt')
+_announced = {'done': False}
+
+
+def initial_admin_password():
+    """Password for the very first administrator of a brand new database.
+
+    Never a well-known default: use SANADEX_ADMIN_PASSWORD when you want to pin
+    it (deployments, automation), otherwise a random password is generated and
+    written to ADMIN_PASSWORD.txt next to the app.
+    """
+    env = os.environ.get('SANADEX_ADMIN_PASSWORD')
+    if env and len(env) >= 6:
+        return env, False
+    import secrets
+    return secrets.token_urlsafe(9), True
+
+
+def _announce_initial_password(password, generated):
+    if _announced['done']:
+        return
+    _announced['done'] = True
+    try:
+        with open(INITIAL_ADMIN_FILE, 'w', encoding='utf-8') as handle:
+            handle.write('Sanadex.wanis.online — first administrator password\n')
+            handle.write(f'username: admin\npassword: {password}\n')
+            handle.write('Sign in, then change it from Users and delete this file.\n')
+    except OSError:
+        pass
+    print('')
+    print('  ============================================================')
+    print('   First administrator created for this database')
+    print(f'   username: admin')
+    print(f'   password: {password}')
+    if generated:
+        print(f'   (also written to {INITIAL_ADMIN_FILE})')
+    print('   Change it right after signing in; delete the file afterwards.')
+    print('  ============================================================')
+    print('')
+
+
+def _existing_backups():
+    if not os.path.isdir(BACKUP_DIR):
+        return []
+    found = []
+    for name in os.listdir(BACKUP_DIR):
+        if not name.lower().endswith('.db'):
+            continue
+        path = os.path.join(BACKUP_DIR, name)
+        try:
+            if os.path.getsize(path) > 0:
+                found.append((os.path.getmtime(path), path))
+        except OSError:
+            continue
+    found.sort(reverse=True)
+    return [path for _mtime, path in found]
+
+
 def seed(conn):
     """Insert sensible defaults for a brand new database (idempotent)."""
     from framework import hash_password
@@ -469,9 +528,11 @@ def seed(conn):
         conn.execute("INSERT INTO company(id,name,phone,address,currency,lang) "
                      "VALUES(1,'','','','','ar')")
     if not one(conn, 'SELECT id FROM users LIMIT 1'):
+        password, generated = initial_admin_password()
         conn.execute('INSERT INTO users(username,password,full_name,is_admin,active,created_at) '
                      'VALUES(?,?,?,?,?,?)',
-                     ('admin', hash_password('admin123'), 'Administrator', 1, 1, time.time()))
+                     ('admin', hash_password(password), 'Administrator', 1, 1, time.time()))
+        _announce_initial_password(password, generated)
     if not one(conn, 'SELECT id FROM accounts_chart LIMIT 1'):
         for row in CHART_SEED:
             conn.execute('INSERT INTO accounts_chart(code,name,name_en,parent_id,atype,is_group) '
@@ -499,13 +560,39 @@ def seed(conn):
 
 
 def _adopt_legacy_database():
-    """First run after the rebrand: keep the user's existing data."""
+    """First run after the rebrand: keep the user's existing data.
+
+    The old file is renamed afterwards, so replacing the application folder can
+    never silently import the stale (often empty) database again — which used to
+    recreate the default administrator after every deploy.
+    """
     if DIALECT != 'sqlite':
         return False
-    if os.path.exists(DB_PATH) or not os.path.exists(LEGACY_DB):
+    if os.path.exists(DB_PATH):
+        # The live database is already established: retire the legacy file so a
+        # later redeploy that replaces the folder can never re-import it (which
+        # used to recreate the default administrator after every deploy).
+        if os.path.exists(LEGACY_DB):
+            try:
+                os.replace(LEGACY_DB, LEGACY_DB + '.migrated')
+                print(f'  Legacy database retired -> {os.path.basename(LEGACY_DB)}.migrated')
+            except OSError:
+                pass
+        return False
+    if not os.path.exists(LEGACY_DB):
+        return False
+    if _existing_backups():
         return False
     try:
         shutil.copy2(LEGACY_DB, DB_PATH)
+        for suffix in ('', '-journal', '-wal', '-shm'):
+            source = LEGACY_DB + suffix
+            if os.path.exists(source):
+                try:
+                    os.replace(source, source + '.migrated')
+                except OSError:
+                    pass
+        print(f'  Adopted legacy database {os.path.basename(LEGACY_DB)} -> {os.path.basename(DB_PATH)}')
         return True
     except OSError:
         return False
@@ -514,6 +601,19 @@ def _adopt_legacy_database():
 def init_db():
     os.makedirs(BACKUP_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
+    if DIALECT == 'sqlite' and not os.path.exists(DB_PATH) \
+            and os.environ.get('SANADEX_FRESH') != '1':
+        backups = _existing_backups()
+        if backups:
+            raise RuntimeError(
+                'The database file was not found: ' + DB_PATH + '\n'
+                f'But {len(backups)} backup(s) exist in {BACKUP_DIR}.\n'
+                'Refusing to start with an empty database, because that would reset your '
+                'administrator password and hide all data.\n'
+                'Restore one of them first:\n'
+                f'    python manage.py restore "{backups[0]}"\n'
+                'or, only if you really want an empty installation:\n'
+                '    set SANADEX_FRESH=1   (then start the app once)')
     _adopt_legacy_database()
     conn = connect()
     try:

@@ -49,6 +49,9 @@ repro/
 .edge/
 .edge-profile/
 
+# generated first-run credentials (never commit)
+ADMIN_PASSWORD.txt
+
 # ---------------------------------------------------------------- secrets & config
 .env
 .env.*

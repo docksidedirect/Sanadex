@@ -3,6 +3,7 @@
 import json
 import os
 import platform
+import re
 import time
 import urllib.parse
 
@@ -43,6 +44,7 @@ def login(req):
             return redirect(url_for('dashboard'), req)
         audit(req, 'login_failed', 'users', 0, (req.f('username') or '').strip()[:40])
         flash(req, T(req, 'bad_credentials'), 'danger')
+        flash(req, T(req, 'login_recovery'), 'info')
     return render(req, 'login.html', title=T(req, 'login'), login_page=True)
 
 
@@ -52,20 +54,25 @@ def logout(req):
     return redirect(url_for('login'), req)
 
 
+def _safe_next(req, fallback_route='dashboard'):
+    candidate = req.q('next') or req.environ.get('HTTP_REFERER') or url_for(fallback_route)
+    if not candidate.startswith('/') or candidate.startswith('//'):
+        return url_for(fallback_route)
+    return candidate
+
+
 @router.route('set_lang', '/lang/<code>', ('GET',))
 def set_lang(req, code):
     req.session['lang'] = 'en' if code == 'en' else 'ar'
     if req.user:
         ex(req.db, 'UPDATE users SET lang=? WHERE id=?', (req.session['lang'], req.user['id']))
-    target = req.environ.get('HTTP_REFERER') or url_for('dashboard')
-    return redirect(target, req)
+    return redirect(_safe_next(req, 'login' if not req.user else 'dashboard'), req)
 
 
 @router.route('set_theme', '/theme/<name>', ('GET',))
 def set_theme(req, name):
     req.session['theme'] = 'dark' if name == 'dark' else 'light'
-    target = req.environ.get('HTTP_REFERER') or url_for('dashboard')
-    return redirect(target, req)
+    return redirect(_safe_next(req, 'login' if not req.user else 'dashboard'), req)
 
 
 # --------------------------------------------------------------------------- #
@@ -112,6 +119,10 @@ def _alerts(req):
         alerts.append({'icon': 'credit-card', 'tone': 'warn', 'route': 'cheques',
                        'text': T(req, 'alert_cheque', number=row['number'],
                                  amount=core.money(row['amount']), date=row['due_date'])})
+    pending = scalar(conn, 'SELECT COUNT(*) c FROM users WHERE active=0')
+    if pending:
+        alerts.append({'icon': 'users', 'tone': 'info', 'route': 'users',
+                       'text': T(req, 'pending_users_alert', n=pending)})
     for row in q(conn, 'SELECT name, balance, credit_limit FROM customers '
                        'WHERE credit_limit>0 AND balance>credit_limit ORDER BY balance DESC LIMIT 5'):
         alerts.append({'icon': 'users', 'tone': 'danger', 'route': 'customers',
@@ -682,6 +693,45 @@ def demo_clear(req):
     flash(req, T(req, 'demo_cleared'), 'warning')
     return redirect(url_for('dashboard'), req)
 
+
+
+
+
+@router.route('signup', '/signup', ('GET', 'POST'))
+def signup(req):
+    """Self registration: the account is created disabled and needs admin approval."""
+    if req.user:
+        return redirect(url_for('dashboard'), req)
+    allowed = int(req.company.get('allow_signup') or 0) == 1
+    error = ''
+    form = {key: req.f(key) for key in ('full_name', 'username', 'phone', 'email')}
+    if req.method == 'POST' and allowed:
+        full_name = (req.f('full_name') or '').strip()
+        username = (req.f('username') or '').strip().lower()
+        phone = (req.f('phone') or '').strip()
+        email = (req.f('email') or '').strip()
+        password = req.f('password') or ''
+        confirm = req.f('password2') or ''
+        if not re.match(r'^[a-z0-9_.-]{3,32}$', username):
+            error = T(req, 'signup_username_invalid')
+        elif not full_name:
+            error = T(req, 'required_field') + ': ' + T(req, 'full_name')
+        elif len(password) < 6:
+            error = T(req, 'signup_short_password')
+        elif password != confirm:
+            error = T(req, 'signup_mismatch')
+        elif one(req.db, 'SELECT id FROM users WHERE username=?', (username,)):
+            error = T(req, 'signup_username_taken')
+        else:
+            user_id = x(req.db, 'INSERT INTO users(username,password,full_name,phone,email,role_id,'
+                                'is_admin,active,lang,created_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+                        (username, hash_password(password), full_name, phone, email, 0, 0, 0, '',
+                         time.time(), 'signup'))
+            audit(req, 'create', 'users', user_id, f'signup pending: {username}')
+            flash(req, T(req, 'signup_pending_msg'), 'success')
+            return redirect(url_for('login'), req)
+    return render(req, 'signup.html', title=T(req, 'signup'), allowed=allowed,
+                  error=error, form=form)
 
 
 @router.route('healthz', '/healthz', ('GET',))

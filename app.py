@@ -42,8 +42,8 @@ def ensure_database():
             _ready['path'] = db.DB_PATH
 
 
-TRIAL_EXEMPT_PREFIXES = ('/static/', '/uploads/', '/lang/', '/theme/')
-TRIAL_EXEMPT_PATHS = {'/login', '/logout', '/healthz', '/license', '/profile', '/favicon.ico'}
+TRIAL_EXEMPT_PREFIXES = ('/static/', '/uploads/', '/lang/', '/theme/', '/signup')
+TRIAL_EXEMPT_PATHS = {'/login', '/logout', '/healthz', '/license', '/profile', '/favicon.ico', '/signup'}
 
 
 def _trial_exempt(path):
@@ -133,7 +133,8 @@ def application(environ, start_response):
                 pass
             else:
                 handler, kwargs, route_name, pattern = router.match(req.method, req.path)
-                if req.path not in ('/login', '/healthz') and not req.user:
+                if req.path not in ('/login', '/healthz', '/signup') \
+                        and not req.path.startswith(('/lang/', '/theme/')) and not req.user:
                     response = redirect(url_for('login'), req)
                 elif handler is None:
                     response = not_found()
@@ -144,6 +145,14 @@ def application(environ, start_response):
                     response = handler(req, **kwargs) if kwargs else handler(req)
                     if response is None:
                         response = not_found()
+    except RuntimeError as exc:  # startup guard (missing database) must be visible
+        try:
+            response = core.render(req, 'error.html', http_status='500 Internal Server Error',
+                                   title=core.T(req, 'server_error'), code='500',
+                                   message=str(exc).splitlines()[0],
+                                   detail=str(exc))
+        except Exception:
+            response = Response(str(exc), '500 Internal Server Error')
     except Exception as exc:  # pragma: no cover - safety net
         response = _error_page(req, exc)
     finally:
@@ -175,7 +184,7 @@ def main():
     print(f'  Database: {db.DB_PATH}')
     print(f'  Running on http://localhost:{port}')
     print('  Login: admin / admin123  (change it in Users)')
-    print('  Cannot sign in? close this window and run reset-admin.bat')
+    print('  Cannot sign in? close this window and run: python manage.py reset-admin')
     sys.stdout.flush()
     try:
         make_server(host, port, application, handler_class=Handler).serve_forever()

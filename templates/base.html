@@ -100,9 +100,9 @@
         <span class="sb-user-meta"><b>{{ user.full_name or user.username }}</b><span>{{ t('profile') }}</span></span>
       </a>
       <div class="sb-links">
-        <a href="{{ url_for('set_lang', code=('en' if lang == 'ar' else 'ar')) }}" title="{{ t('language') }}">
+        <a href="{{ url_for('set_lang', code=('en' if lang == 'ar' else 'ar')) }}?next={{ request.path|urlencode }}" title="{{ t('language') }}">
           {{ icon('globe')|safe }}<span>{{ 'EN' if lang == 'ar' else 'ع' }}</span></a>
-        <a href="{{ url_for('set_theme', name=('dark' if theme == 'light' else 'light')) }}" title="{{ t('theme') }}">
+        <a href="{{ url_for('set_theme', name=('dark' if theme == 'light' else 'light')) }}?next={{ request.path|urlencode }}" title="{{ t('theme') }}">
           {{ icon('moon' if theme == 'light' else 'sun')|safe }}<span>{{ t('dark' if theme == 'light' else 'light') }}</span></a>
         <a href="{{ url_for('logout') }}" title="{{ t('logout') }}">{{ icon('logout')|safe }}<span>{{ t('logout') }}</span></a>
       </div>
@@ -128,9 +128,9 @@
         <button class="search-trigger" type="button" data-open-cmd>
           {{ icon('search')|safe }}<span>{{ t('search_everything') }}</span><span class="kbd">Ctrl K</span>
         </button>
-        <a class="lang-switch" href="{{ url_for('set_lang', code=('en' if lang == 'ar' else 'ar')) }}"
+        <a class="lang-switch" href="{{ url_for('set_lang', code=('en' if lang == 'ar' else 'ar')) }}?next={{ request.path|urlencode }}"
            title="{{ t('language') }}">{{ 'EN' if lang == 'ar' else 'ع' }}</a>
-        <a class="theme-btn" href="{{ url_for('set_theme', name=('dark' if theme == 'light' else 'light')) }}"
+        <a class="theme-btn" href="{{ url_for('set_theme', name=('dark' if theme == 'light' else 'light')) }}?next={{ request.path|urlencode }}"
            title="{{ t('theme') }}">{{ icon('moon' if theme == 'light' else 'sun')|safe }}</a>
         <div class="tb-user">
           <span class="avatar">{{ (user.full_name or user.username or 'U')[0]|upper }}</span>

@@ -31,8 +31,8 @@
   <main class="auth-main">
     <div class="auth-card">
       <div class="auth-lang">
-        <a class="chip {{ 'is-on' if lang == 'ar' }}" href="{{ url_for('set_lang', code='ar') }}">العربية</a>
-        <a class="chip {{ 'is-on' if lang == 'en' }}" href="{{ url_for('set_lang', code='en') }}">English</a>
+        <a class="chip {{ 'is-on' if lang == 'ar' }}" href="{{ url_for('set_lang', code='ar') }}?next=/login">العربية</a>
+        <a class="chip {{ 'is-on' if lang == 'en' }}" href="{{ url_for('set_lang', code='en') }}?next=/login">English</a>
       </div>
       <div class="card">
         <div class="card-body">
@@ -59,6 +59,13 @@
             </div>
             <button class="btn btn-primary btn-block btn-lg" type="submit">{{ t('login') }}</button>
           </form>
+          {% if company.allow_signup %}
+          <p class="tiny" style="margin:16px 0 0;text-align:center">
+            {{ t('no_account') }}
+            <a href="{{ url_for('signup') }}" style="font-weight:700">{{ t('create_account') }}</a>
+          </p>
+          {% endif %}
+          <p class="tiny muted" style="margin:12px 0 0">{{ t('login_recovery') }}</p>
         </div>
       </div>
       <p class="tiny muted" style="text-align:center;margin-top:14px">Sanadex.wanis.online</p>

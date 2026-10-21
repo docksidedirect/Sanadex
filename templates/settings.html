@@ -116,6 +116,9 @@
             <span class="tiny">{{ t('restrict_scope') }}</span></label>
           <label class="check"><input type="checkbox" name="show_cost" {{ 'checked' if comp.show_cost }}>
             <span class="tiny">{{ t('show_cost') }}</span></label>
+          <label class="check"><input type="checkbox" name="allow_signup"
+                 {{ 'checked' if comp.allow_signup }}>
+            <span class="tiny">{{ t('settings_signup') }}</span></label>
         </div>
         <div class="span-6 field"><span class="label">{{ t('auto_backup') }}</span>
           <label class="check"><input type="checkbox" name="auto_backup" {{ 'checked' if comp.auto_backup }}>
