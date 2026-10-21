@@ -43,7 +43,6 @@ def login(req):
             return redirect(url_for('dashboard'), req)
         audit(req, 'login_failed', 'users', 0, (req.f('username') or '').strip()[:40])
         flash(req, T(req, 'bad_credentials'), 'danger')
-        flash(req, T(req, 'login_recovery'), 'info')
     return render(req, 'login.html', title=T(req, 'login'), login_page=True)
 
 
