@@ -5,6 +5,40 @@
 {% endif %}
 {% endblock %}
 {% block content %}
+<div class="card" style="margin-bottom:16px">
+  <div class="card-head">
+    <span class="card-title">{{ t('quick_license') }}</span>
+    <div class="card-actions"><span class="badge b-warn">{{ trial_users|length }}</span></div>
+  </div>
+  <div class="card-body">
+    <p class="tiny muted" style="margin-top:0">{{ t('quick_license_hint') }}</p>
+    {% if trial_users %}
+    <form method="post" action="{{ url_for('license_user_action') }}"
+          class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <input type="hidden" name="action" value="renew">
+      <div class="field" style="flex:2;min-width:220px">
+        <label class="label" for="quick_uid">{{ t('trial_users') }}</label>
+        <select class="select" id="quick_uid" name="uid" required>
+          {% for row in trial_users %}
+          <option value="{{ row.id }}">{{ row.full_name or row.username }} (@{{ row.username }}) — {{ t('license_trial_days') }}: {{ row.licence.days_left }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field" style="flex:2;min-width:220px">
+        <label class="label" for="quick_plan">{{ t('subscription_plan') }}</label>
+        <select class="select" id="quick_plan" name="plan" required>
+          {% for plan in plans %}
+          <option value="{{ plan.key }}" {{ 'selected' if plan.key == '1m' }}>{{ t('plan_' + plan.key) }} — {{ plan.price|money }} {{ company.currency or 'EGP' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">{{ icon('key')|safe }} {{ t('license_create') }}</button>
+    </form>
+    {% else %}
+    <p class="tiny muted" style="margin:0">{{ t('license_no_trial_users') }}</p>
+    {% endif %}
+  </div>
+</div>
 <div class="grid grid-side">
   <div class="stack">
     <div class="card">
@@ -314,13 +348,13 @@
             {% else %}<span class="badge b-danger">{{ t('license_trial_expired') }}</span>{% endif %}
           </td>
           <td class="act">
-            {% if row.licence.scope != 'user' and row.licence.plan != 'lifetime' %}
+            {% if (row.licence.plan == 'trial' or row.licence.scope == 'subscription') and row.licence.plan != 'lifetime' %}
             <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
               <input type="hidden" name="uid" value="{{ row.id }}">
               <input type="hidden" name="action" value="renew">
               <select class="select select-sm" name="plan" style="width:auto">
                 {% for plan in plans %}
-                <option value="{{ plan.key }}" {{ 'selected' if plan.key == '1m' }}>{{ t('plan_' + plan.key) }}</option>
+                <option value="{{ plan.key }}" {{ 'selected' if plan.key == '1m' }}>{{ t('plan_' + plan.key) }} — {{ plan.price|money }} {{ company.currency or 'EGP' }}</option>
                 {% endfor %}
               </select>
               <button class="btn btn-sm btn-ok" type="submit">{{ t('license_renew') }}</button>

@@ -785,9 +785,11 @@ def license_page(req):
     installation = license_lib.state(req.db, req.company)
     access = license_lib.user_state(req.db, req.user, req.company)
     generated = req.session.pop('generated_key', '')
+    trials = license_lib.user_trials(req.db)
+    trial_users = [row for row in trials if row['licence'].get('plan') == 'trial']
     return render(req, 'license.html', title=T(req, 'license'), subtitle=T(req, 'license_sub'),
                   active='license', lic=access, installation=installation,
-                  trials=license_lib.user_trials(req.db),
+                  trials=trials, trial_users=trial_users,
                   requests=license_lib.pending_requests(req.db),
                   plans=license_lib.plans(),
                   machine=license_lib.machine_id(),

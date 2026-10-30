@@ -846,6 +846,10 @@ check('admin can reset a trial back to 14 days',
 
 status, headers, body = admin.get('/license')
 check('licence screen lists user trials', 'المستخدمون والاشتراكات' in body and 'seller' in body)
+check('admin can renew a trial with the subscription plans',
+      'value="renew"' in body and 'value="3m"' in body and 'value="1y"' in body)
+check('licence page has a quick trial-user + plan dropdown',
+      'id="quick_uid"' in body and 'id="quick_plan"' in body)
 
 installation_key = license_module.generate('Installation licence', 'standard', 5, 365)
 admin.post('/license/activate', {'key': installation_key})
