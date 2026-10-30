@@ -1077,6 +1077,7 @@ check('bot answers /start and /stats and ignores strangers',
 trials_text, trials_kb = telegram_bot.build_trials(bot_conn, bot_cfg)
 check('bot lists trial accounts', 'Trial accounts' in trials_text or
       'No trial accounts' in trials_text, trials_text)
+check('bot never shows 1970 for an unstarted trial', '1970' not in trials_text, trials_text)
 original_api = telegram_bot._api
 telegram_bot._api = lambda method, payload, token: {'ok': True, 'result': [
     {'message': {'chat': {'id': 4242, 'first_name': 'Owner', 'username': 'owner'}}}]}

@@ -212,9 +212,12 @@ def _money(cfg, value):
 
 def _date(ts):
     try:
-        return time.strftime('%Y-%m-%d', time.localtime(float(ts)))
+        value = float(ts)
     except (TypeError, ValueError):
         return '—'
+    if value <= 0:
+        return '—'
+    return time.strftime('%Y-%m-%d', time.localtime(value))
 
 
 def _active_sub_rows(conn):
@@ -268,9 +271,12 @@ def build_trials(conn, cfg):
     rows.sort(key=lambda row: row['licence'].get('days_left') or 0)
     lines = [f'🆕 Trial accounts ({len(rows)})', '']
     for row in rows[:15]:
+        started = _date(row.get('trial_started'))
+        if started == '—':
+            started = 'starts on first login'
         lines.append(f"• {row.get('full_name') or row.get('username')} "
                      f"(@{row.get('username')}) — {row['licence'].get('days_left')} days left "
-                     f"· started {_date(row.get('trial_started'))}")
+                     f"· {started}")
     return '\n'.join(lines), menu_keyboard(cfg)
 
 
@@ -324,8 +330,11 @@ def build_find(conn, cfg, term):
                   f"Expires: {'never' if sub.get('days_left') is None else _date(sub.get('expires'))}",
                   f"Days left: {sub.get('days_left') if sub.get('days_left') is not None else '∞'}"]
     else:
+        started = _date(user.get('trial_started'))
+        if started == '—':
+            started = 'not started (starts on first login)'
         lines += ['Plan: 14-day trial', f"Status: {state['state']}",
-                  f"Trial started: {_date(user.get('trial_started'))}",
+                  f"Trial started: {started}",
                   f"Trial days left: {state.get('days_left') if state.get('days_left') is not None else '∞'}"]
     keyboard = [[
         _button('+30 days', f"renew:{user['id']}:1m"),
