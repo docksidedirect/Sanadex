@@ -36,18 +36,33 @@ def sign(data):
     return hmac.new(SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()
 
 
-def hash_password(pw, salt=None):
+PBKDF2_ITERATIONS = 600000
+PBKDF2_LEGACY_ITERATIONS = 60000
+
+
+def hash_password(pw, salt=None, iterations=None):
+    iterations = iterations or PBKDF2_ITERATIONS
     salt = salt or os.urandom(16).hex()
-    dk = hashlib.pbkdf2_hmac('sha256', pw.encode(), bytes.fromhex(salt), 60000)
-    return salt + '$' + dk.hex()
+    dk = hashlib.pbkdf2_hmac('sha256', pw.encode(), bytes.fromhex(salt), iterations)
+    return f'pbkdf2_sha256${iterations}${salt}${dk.hex()}'
 
 
 def check_password(pw, stored):
     try:
-        salt, _ = stored.split('$', 1)
-        return hmac.compare_digest(hash_password(pw, salt), stored)
+        if str(stored).startswith('pbkdf2_sha256$'):
+            _scheme, iterations, salt, digest = str(stored).split('$', 3)
+            dk = hashlib.pbkdf2_hmac('sha256', pw.encode(), bytes.fromhex(salt), int(iterations))
+            return hmac.compare_digest(dk.hex(), digest)
+        salt, digest = str(stored).split('$', 1)
+        dk = hashlib.pbkdf2_hmac('sha256', pw.encode(), bytes.fromhex(salt),
+                                 PBKDF2_LEGACY_ITERATIONS)
+        return hmac.compare_digest(dk.hex(), digest)
     except Exception:
         return False
+
+
+def password_needs_rehash(stored):
+    return not str(stored or '').startswith(f'pbkdf2_sha256${PBKDF2_ITERATIONS}$')
 
 
 def h(text):

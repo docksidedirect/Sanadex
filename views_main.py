@@ -17,8 +17,8 @@ import telegram_bot
 from core import (T, audit, can, current_lang, flash, guard, json_error, json_ok, money,
                   next_number, q, render, one, scalar, today, x)
 from db import ex
-from framework import (Response, file_response, hash_password, redirect, router, url_for,
-                       read_upload, check_password)
+from framework import (Response, file_response, hash_password, password_needs_rehash,
+                       redirect, router, url_for, read_upload, check_password)
 from crud import CRUDS
 
 
@@ -82,6 +82,10 @@ def login(req):
         user = one(req.db, 'SELECT * FROM users WHERE username=? AND active=1', (username,))
         if user and check_password(req.f('password'), user['password']):
             _login_clear(req, username)
+            if password_needs_rehash(user['password']):
+                upgraded = hash_password(req.f('password'))
+                ex(req.db, 'UPDATE users SET password=? WHERE id=?', (upgraded, user['id']))
+                user['password'] = upgraded
             req.session['uid'] = user['id']
             req.session.pop('lang', None)
             if user.get('lang'):

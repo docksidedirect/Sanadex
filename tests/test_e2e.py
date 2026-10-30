@@ -11,6 +11,7 @@ import os
 import re
 import sys
 import urllib.parse
+import hashlib
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE)
@@ -207,6 +208,33 @@ status, headers, body = throttle_client.request(
     extra={'HTTP_X_FORWARDED_FOR': '203.0.113.77'})
 check('repeated login failures are throttled',
       status.startswith('429') and 'محاولات كثيرة' in body.decode('utf-8', 'replace'), status)
+
+svg_path = os.path.join(db.UPLOAD_DIR, 'security-test.svg')
+with open(svg_path, 'w', encoding='utf-8') as handle:
+    handle.write('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
+status, headers, body = Client().get('/uploads/security-test.svg')
+check('uploaded SVG is sandboxed',
+      status.startswith('200') and 'sandbox' in headers.get('Content-Security-Policy', '') and
+      headers.get('X-Content-Type-Options') == 'nosniff', headers.get('Content-Security-Policy'))
+
+legacy_salt = os.urandom(16).hex()
+legacy_hash = legacy_salt + '$' + hashlib.pbkdf2_hmac(
+    'sha256', b'Legacy123', bytes.fromhex(legacy_salt), 60000).hex()
+legacy_conn = conn()
+db.x(legacy_conn, 'INSERT INTO users(username,password,full_name,role_id,is_admin,active) '
+                  'VALUES(?,?,?,?,?,?)',
+     ('legacy_login_test', legacy_hash, 'Legacy Test', 0, 0, 1))
+legacy_conn.close()
+legacy_client = Client()
+status, headers, body = legacy_client.post('/login', {'username': 'legacy_login_test',
+                                                      'password': 'Legacy123'})
+check('legacy password login still works', status.startswith('302'), status)
+stored_hash = value("SELECT password FROM users WHERE username='legacy_login_test'")
+check('legacy password hash is upgraded on login',
+      str(stored_hash).startswith('pbkdf2_sha256$600000$'), stored_hash)
+cleanup_conn = conn()
+db.ex(cleanup_conn, "DELETE FROM users WHERE username='legacy_login_test'")
+cleanup_conn.close()
 
 status, headers, body = admin.get('/')
 check('dashboard renders', status.startswith('200') and 'Sanadex.wanis.online' in body, status)

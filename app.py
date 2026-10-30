@@ -113,9 +113,15 @@ def _serve_upload(path):
         if lowered.endswith(ext):
             content_type = ctype
             break
+    headers = [('Content-Type', content_type),
+               ('Cache-Control', 'public, max-age=600'),
+               ('X-Content-Type-Options', 'nosniff')]
+    if lowered.endswith('.svg'):
+        # Uploaded SVG must never execute scripts in the app origin.
+        headers.append(('Content-Security-Policy',
+                        "sandbox; default-src 'none'; style-src 'unsafe-inline'"))
     with open(full, 'rb') as fh:
-        return Response(fh.read(), '200 OK', [('Content-Type', content_type),
-                                              ('Cache-Control', 'public, max-age=600')])
+        return Response(fh.read(), '200 OK', headers)
 
 
 def _error_page(req, exc):
