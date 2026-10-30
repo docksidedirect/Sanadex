@@ -145,52 +145,27 @@ def _admin_row(cfg):
 
 
 def menu_keyboard(cfg):
-    rows = [
-        [_button('📊 Stats', 'menu:stats'), _button('⏳ Pending', 'menu:pending')],
-        [_button('🔎 Find', 'prompt:find'), _button('📅 Expiry', 'menu:expiry')],
-        [_button('📨 Digest now', 'menu:digest'), _button('❤️ Health', 'menu:health')],
-        [_button('❓ Help', 'menu:help')],
-    ]
-    return {'inline_keyboard': rows + _admin_row(cfg)}
+    """The bot is notification-only; no inline menu is ever attached."""
+    return None
 
 
 def _actions_keyboard(rows=None):
-    """Only contextual action buttons — the full menu is requested explicitly."""
-    rows = [row for row in (rows or []) if row]
-    return {'inline_keyboard': rows} if rows else None
+    """The bot no longer exposes action buttons in Telegram."""
+    return None
 
 
 COMMANDS = (
-    ('menu', 'Open the bot menu'),
-    ('stats', 'Revenue and licence counts'),
-    ('pending', 'Subscriptions waiting for approval'),
-    ('find', 'Look up a subscription'),
-    ('approve', 'Approve a pending subscription'),
-    ('renew', 'Renew a subscription'),
-    ('digest', 'Send the daily digest now'),
-    ('expiry', 'Subscriptions expiring this week'),
-    ('health', 'Check this installation'),
-    ('admin', 'Open the admin licence screen'),
-    ('help', 'Show available commands'),
+    ('start', 'Start Sanadex notifications'),
 )
 
-HELP_TEXT = ('🤖 Sanadex admin bot\n\n'
-             'Use the ☰ Menu button or /menu to open the menu. '
-             'Alerts are sent without extra buttons.\n\n'
-             '/stats — revenue and licence counts\n'
-             '/pending — subscriptions waiting for approval\n'
-             '/find <user or id> — look up a subscription\n'
-             '/approve <id> — approve a pending subscription\n'
-             '/renew <user> [1m|3m|6m|1y|lifetime] — renew a subscription\n'
-             '/digest — send the daily digest now\n'
-             '/expiry — show subscriptions expiring this week\n'
-             '/health — check this installation\n'
-             '/admin — open the admin licence screen\n'
-             '/help — show available commands')
+HELP_TEXT = ('🤖 Sanadex notifications\n\n'
+             'This bot only sends notifications: new trials, the daily digest '
+             'and expiry alerts.\n\n'
+             'Use /start to confirm. Manage licences from the Sanadex admin panel.')
 
 
 def set_profile(cfg):
-    """Publish the bot description and native Menu commands (best effort)."""
+    """Publish a notification-only description and a single /start command."""
     token = cfg.get('token')
     if not token:
         return False
@@ -199,9 +174,9 @@ def set_profile(cfg):
     for method, payload in (
         ('setMyCommands', {'commands': commands}),
         ('setChatMenuButton', {'menu_button': json.dumps({'type': 'commands'})}),
-        ('setMyDescription', {'description': 'Sanadex admin bot — trials, subscriptions, '
-                                            'renewals and daily reports.'}),
-        ('setShortDescription', {'description': 'Manage Sanadex subscriptions from Telegram.'}),
+        ('setMyDescription', {'description': 'Sanadex notifications — new trials, '
+                                            'daily digest and expiry alerts.'}),
+        ('setShortDescription', {'description': 'Sanadex subscription notifications.'}),
     ):
         try:
             _api(method, payload, token)
@@ -456,6 +431,10 @@ def handle_update(update, cfg=None):
     if not text:
         return
     command, args = _parse(text)
+    if command not in ('/start', '/help'):
+        send(cfg, 'This bot only sends notifications. Use the Sanadex admin panel '
+                  'to manage licences and subscriptions.')
+        return
     conn = db.connect()
     try:
         if command in ('/start', '/menu'):
@@ -511,22 +490,8 @@ def _parse(text):
 
 
 def _send_menu(cfg, data, conn):
-    action = data.split(':', 1)[1] if ':' in data else 'help'
-    if action == 'stats':
-        body, keyboard = build_stats(conn, cfg)
-    elif action == 'pending':
-        body, keyboard = build_pending(conn, cfg)
-    elif action == 'expiry':
-        body, keyboard = build_expiry(conn, cfg)
-    elif action == 'health':
-        body, keyboard = build_health(conn, cfg)
-    elif action == 'digest':
-        body, keyboard = build_stats(conn, cfg)
-    elif action == 'find':
-        body, keyboard = 'Send /find <username, phone or id>.', menu_keyboard(cfg)
-    else:
-        body, keyboard = HELP_TEXT, menu_keyboard(cfg)
-    send(cfg, body, keyboard=keyboard)
+    send(cfg, 'This menu is no longer available. The bot only sends notifications. '
+              'Use /start on a new message.')
 
 
 # --------------------------------------------------------------------------- #

@@ -1040,12 +1040,12 @@ bot_conn = conn()
 stats_text, stats_kb = telegram_bot.build_stats(bot_conn, bot_cfg)
 check('bot stats report revenue and licences',
       'Revenue:' in stats_text and 'Active licences:' in stats_text and stats_kb is None)
-check('bot menu is only built on demand',
-      'inline_keyboard' in telegram_bot.menu_keyboard(bot_cfg))
+check('bot no longer exposes an inline menu',
+      telegram_bot.menu_keyboard(bot_cfg) is None)
 license_module.request_subscription(bot_conn, plan_user['id'], '6m', 'test')
 pending_text, pending_kb = telegram_bot.build_pending(bot_conn, bot_cfg)
-check('bot lists pending subscriptions with approve buttons',
-      'cashier2' in pending_text and 'approve:' in str(pending_kb), pending_text)
+check('bot pending list has no action buttons',
+      'cashier2' in pending_text and pending_kb is None, pending_text)
 sub_id = value("SELECT id FROM subscriptions WHERE user_id=? AND status='pending'", (plan_user['id'],))
 approve_text = telegram_bot.perform_approve(bot_conn, sub_id, 'test')
 check('bot approves a pending subscription', 'Approved' in approve_text and
@@ -1062,14 +1062,16 @@ sent = []
 original_send = telegram_bot.send
 telegram_bot.send = lambda cfg, text, chat_id=None, keyboard=None: sent.append(text) or True
 try:
-    telegram_bot.handle_update({'message': {'chat': {'id': 42}, 'text': '/health'}},
+    telegram_bot.handle_update({'message': {'chat': {'id': 42}, 'text': '/start'}},
+                               dict(bot_cfg, chat_ids=['42']))
+    telegram_bot.handle_update({'message': {'chat': {'id': 42}, 'text': '/stats'}},
                                dict(bot_cfg, chat_ids=['42']))
     telegram_bot.handle_update({'message': {'chat': {'id': 7}, 'text': '/health'}},
                                dict(bot_cfg, chat_ids=['42']))
 finally:
     telegram_bot.send = original_send
-check('bot answers an authorised command and ignores strangers',
-      len(sent) == 1 and 'Database: OK' in sent[0], sent)
+check('bot answers /start, refuses other commands and ignores strangers',
+      len(sent) == 2 and 'notifications' in sent[0] and 'only sends notifications' in sent[1], sent)
 original_api = telegram_bot._api
 telegram_bot._api = lambda method, payload, token: {'ok': True, 'result': [
     {'message': {'chat': {'id': 4242, 'first_name': 'Owner', 'username': 'owner'}}}]}
