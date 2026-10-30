@@ -46,6 +46,8 @@ KEYS = {
     'login_default': ('الدخول الافتراضي: admin / admin123 — غيّره من المستخدمين.', 'Default login: admin / admin123 — change it from Users.'),
     'login_brand_line': ('محاسبة ومخازن وفواتير وتقارير، بالعربية والإنجليزية، على جهازك.', 'Accounting, stock, invoicing and reports — Arabic and English, on your own machine.'),
     'bad_credentials': ('اسم المستخدم أو كلمة المرور غير صحيحة', 'Wrong username or password'),
+    'login_throttled': ('محاولات كثيرة. حاول مرة أخرى بعد {minutes} دقيقة.',
+                        'Too many attempts. Try again in {minutes} minute(s).'),
     'logged_out': ('تم تسجيل الخروج', 'Signed out'),
     'forbidden': ('لا تملك صلاحية لهذه الشاشة', 'You do not have permission for this screen'),
     'not_found': ('غير موجود', 'Not found'),

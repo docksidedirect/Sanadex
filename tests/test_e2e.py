@@ -188,6 +188,26 @@ check('forced HTTPS sets Secure cookie and HSTS',
       'Secure' in headers.get('Set-Cookie', '') and
       headers.get('Strict-Transport-Security', '').startswith('max-age='))
 
+csrf_client = Client()
+status, headers, body = csrf_client.request(
+    '/login', 'POST', {'username': 'admin', 'password': 'admin123'},
+    extra={'HTTP_ORIGIN': 'https://evil.example'})
+check('cross-origin POST is blocked', status.startswith('403'), status)
+status, headers, body = Client().request(
+    '/login', 'POST', {'username': 'admin', 'password': 'admin123'},
+    extra={'HTTP_ORIGIN': 'http://localhost:8000'})
+check('same-origin POST is allowed', status.startswith('302'), status)
+
+throttle_client = Client()
+for _attempt in range(8):
+    throttle_client.request('/login', 'POST', {'username': 'lockme', 'password': 'bad'},
+                            extra={'HTTP_X_FORWARDED_FOR': '203.0.113.77'})
+status, headers, body = throttle_client.request(
+    '/login', 'POST', {'username': 'lockme', 'password': 'bad'},
+    extra={'HTTP_X_FORWARDED_FOR': '203.0.113.77'})
+check('repeated login failures are throttled',
+      status.startswith('429') and 'محاولات كثيرة' in body.decode('utf-8', 'replace'), status)
+
 status, headers, body = admin.get('/')
 check('dashboard renders', status.startswith('200') and 'Sanadex.wanis.online' in body, status)
 check('dashboard shows KPI cards', 'kpi-value' in body)

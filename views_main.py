@@ -4,6 +4,7 @@ import json
 import os
 import platform
 import re
+import threading
 import time
 import urllib.parse
 
@@ -24,14 +25,63 @@ from crud import CRUDS
 # --------------------------------------------------------------------------- #
 # auth
 # --------------------------------------------------------------------------- #
+LOGIN_WINDOW = 15 * 60
+LOGIN_MAX_IP = 12
+LOGIN_MAX_USER = 8
+_login_lock = threading.Lock()
+_login_failures = {}
+
+
+def _login_ip(req):
+    forwarded = (req.environ.get('HTTP_X_FORWARDED_FOR') or '').split(',')[0].strip()
+    return forwarded or req.environ.get('REMOTE_ADDR') or 'unknown'
+
+
+def _login_keys(req, username):
+    return (f'ip:{_login_ip(req)}', f'user:{(username or "").strip().lower()[:64]}')
+
+
+def _login_wait(req, username):
+    """Minutes to wait when this IP or account is throttled (0 = allowed)."""
+    now = time.time()
+    for key, limit in zip(_login_keys(req, username), (LOGIN_MAX_IP, LOGIN_MAX_USER)):
+        with _login_lock:
+            attempts = [t for t in _login_failures.get(key, []) if now - t < LOGIN_WINDOW]
+            _login_failures[key] = attempts
+        if len(attempts) >= limit:
+            return max(1, int((LOGIN_WINDOW - (now - min(attempts))) // 60) + 1)
+    return 0
+
+
+def _login_failed(req, username):
+    now = time.time()
+    with _login_lock:
+        for key in _login_keys(req, username):
+            attempts = [t for t in _login_failures.get(key, []) if now - t < LOGIN_WINDOW]
+            attempts.append(now)
+            _login_failures[key] = attempts
+
+
+def _login_clear(req, username):
+    with _login_lock:
+        for key in _login_keys(req, username):
+            _login_failures.pop(key, None)
+
+
 @router.route('login', '/login', ('GET', 'POST'))
 def login(req):
     if req.user:
         return redirect(url_for('dashboard'), req)
     if req.method == 'POST':
-        user = one(req.db, 'SELECT * FROM users WHERE username=? AND active=1',
-                   ((req.f('username') or '').strip(),))
+        username = (req.f('username') or '').strip()
+        wait = _login_wait(req, username)
+        if wait:
+            flash(req, T(req, 'login_throttled', minutes=wait), 'danger')
+            return render(req, 'login.html', title=T(req, 'login'), login_page=True,
+                          http_status='429 Too Many Requests')
+        user = one(req.db, 'SELECT * FROM users WHERE username=? AND active=1', (username,))
         if user and check_password(req.f('password'), user['password']):
+            _login_clear(req, username)
             req.session['uid'] = user['id']
             req.session.pop('lang', None)
             if user.get('lang'):
@@ -43,7 +93,8 @@ def login(req):
             req.user = user
             audit(req, 'login', 'users', user['id'])
             return redirect(url_for('dashboard'), req)
-        audit(req, 'login_failed', 'users', 0, (req.f('username') or '').strip()[:40])
+        _login_failed(req, username)
+        audit(req, 'login_failed', 'users', 0, username[:40])
         flash(req, T(req, 'bad_credentials'), 'danger')
     return render(req, 'login.html', title=T(req, 'login'), login_page=True)
 

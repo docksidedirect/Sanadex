@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import traceback
+from urllib.parse import urlsplit
 
 import core
 import db
@@ -70,6 +71,27 @@ def _apply_security_headers(req, response):
             response.headers.append((name, value))
     if req.is_https() and 'strict-transport-security' not in present:
         response.headers.append(('Strict-Transport-Security', 'max-age=31536000'))
+
+
+def _same_origin(req):
+    """Reject browser POSTs coming from another origin (CSRF defence in depth)."""
+    if req.method not in ('POST', 'PUT', 'PATCH', 'DELETE'):
+        return True
+    source = req.environ.get('HTTP_ORIGIN') or req.environ.get('HTTP_REFERER') or ''
+    if not source:
+        return True  # non-browser clients and forms without Origin
+    hosts = []
+    for header in ('HTTP_X_FORWARDED_HOST', 'HTTP_HOST'):
+        for part in (req.environ.get(header) or '').split(','):
+            part = part.strip().lower()
+            if part:
+                hosts.append(part)
+    if not hosts:
+        return False
+    try:
+        return urlsplit(source).netloc.lower() in hosts
+    except ValueError:
+        return False
 
 def _serve_static(path):
     name = os.path.basename(path)
@@ -149,6 +171,11 @@ def application(environ, start_response):
                                            http_status='403 Forbidden',
                                            title=core.T(req, 'license_trial_expired'),
                                            lic=trial)
+            if not _same_origin(req):
+                response = Response('<!doctype html><meta charset="utf-8"><title>403</title>'
+                                    '<div style="font:15px system-ui;padding:40px">'
+                                    'Cross-site request blocked / تم حظر الطلب</div>',
+                                    '403 Forbidden')
             if response is not None:
                 pass
             else:
