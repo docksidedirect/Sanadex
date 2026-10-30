@@ -53,6 +53,24 @@ def _trial_exempt(path):
         return True
     return any(path.startswith(prefix) for prefix in TRIAL_EXEMPT_PREFIXES)
 
+
+SECURITY_HEADERS = (
+    ('X-Content-Type-Options', 'nosniff'),
+    ('X-Frame-Options', 'SAMEORIGIN'),
+    ('Referrer-Policy', 'strict-origin-when-cross-origin'),
+    ('Permissions-Policy', 'camera=(), microphone=(), geolocation=()'),
+    ('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'"),
+)
+
+
+def _apply_security_headers(req, response):
+    present = {name.lower() for name, _value in response.headers}
+    for name, value in SECURITY_HEADERS:
+        if name.lower() not in present:
+            response.headers.append((name, value))
+    if req.is_https() and 'strict-transport-security' not in present:
+        response.headers.append(('Strict-Transport-Security', 'max-age=31536000'))
+
 def _serve_static(path):
     name = os.path.basename(path)
     if not name or name.startswith('.'):
@@ -166,6 +184,7 @@ def application(environ, start_response):
     if not isinstance(response, Response):
         response = Response(str(response))
     response.set_cookie_header(req)
+    _apply_security_headers(req, response)
     start_response(response.status, response.headers)
     return [response.body]
 

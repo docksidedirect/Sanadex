@@ -181,10 +181,17 @@ class Request:
         except Exception:
             return {}
 
+    def is_https(self):
+        """True when the browser reached us over HTTPS (directly or via proxy)."""
+        proto = (self.environ.get('HTTP_X_FORWARDED_PROTO') or '').split(',')[0].strip().lower()
+        return (proto == 'https' or self.environ.get('wsgi.url_scheme') == 'https'
+                or str(self.environ.get('HTTPS') or '').lower() in ('on', '1'))
+
     def session_cookie(self):
         data = b64e(json.dumps(self.session, ensure_ascii=False).encode())
+        secure = '; Secure' if self.is_https() else ''
         return ('Set-Cookie',
-                f'{COOKIE}={data}.{sign(data)}; Path=/; HttpOnly; SameSite=Lax; '
+                f'{COOKIE}={data}.{sign(data)}; Path=/; HttpOnly; SameSite=Lax{secure}; '
                 f'Max-Age={SESSION_COOKIE_MAX_AGE}')
 
 

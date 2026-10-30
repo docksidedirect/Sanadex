@@ -68,7 +68,7 @@ class Client:
         self.cookie = ''
         self.last_headers = {}
 
-    def request(self, path, method='GET', data=None, body=None, content_type=None):
+    def request(self, path, method='GET', data=None, body=None, content_type=None, extra=None):
         if body is None:
             body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else b''
         environ = {
@@ -82,6 +82,8 @@ class Client:
             'REMOTE_ADDR': '127.0.0.1',
             'HTTP_HOST': 'localhost:8000',
         }
+        if extra:
+            environ.update(extra)
         box = {}
 
         def start_response(status, headers):
@@ -166,6 +168,17 @@ status, headers, body = admin.post('/login', {'username': 'admin', 'password': '
 check('admin can sign in', status.startswith('302'), status)
 guest = Client()
 check('login page carries the new brand', 'Sanadex.wanis.online' in guest.get('/login')[2])
+status, headers, body = guest.get('/login')
+check('security headers are present',
+      headers.get('X-Content-Type-Options') == 'nosniff' and
+      headers.get('X-Frame-Options') == 'SAMEORIGIN' and
+      'frame-ancestors' in headers.get('Content-Security-Policy', ''))
+check('HTTP cookie is not marked Secure', 'Secure' not in headers.get('Set-Cookie', ''))
+https_client = Client()
+status, headers, body = https_client.request('/login', extra={'HTTP_X_FORWARDED_PROTO': 'https'})
+check('HTTPS cookie is marked Secure', 'Secure' in headers.get('Set-Cookie', ''), headers.get('Set-Cookie'))
+check('HTTPS sends HSTS', headers.get('Strict-Transport-Security', '').startswith('max-age='),
+      headers.get('Strict-Transport-Security'))
 
 status, headers, body = admin.get('/')
 check('dashboard renders', status.startswith('200') and 'Sanadex.wanis.online' in body, status)
