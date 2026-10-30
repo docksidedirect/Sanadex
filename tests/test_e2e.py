@@ -1040,12 +1040,14 @@ bot_conn = conn()
 stats_text, stats_kb = telegram_bot.build_stats(bot_conn, bot_cfg)
 check('bot stats report revenue and licences',
       'Revenue:' in stats_text and 'Active licences:' in stats_text and stats_kb is None)
-check('bot exposes the management menu',
-      'inline_keyboard' in telegram_bot.menu_keyboard(bot_cfg))
+check('bot exposes commands in the native menu only',
+      telegram_bot.menu_keyboard(bot_cfg) is None and
+      {'revenue', 'trials', 'find', 'pending', 'expiry'} <=
+      {name for name, _text in telegram_bot.COMMANDS})
 license_module.request_subscription(bot_conn, plan_user['id'], '6m', 'test')
 pending_text, pending_kb = telegram_bot.build_pending(bot_conn, bot_cfg)
-check('bot lists pending subscriptions with approve buttons',
-      'cashier2' in pending_text and 'approve:' in str(pending_kb), pending_text)
+check('bot pending list has no inline buttons',
+      'cashier2' in pending_text and pending_kb is None, pending_text)
 sub_id = value("SELECT id FROM subscriptions WHERE user_id=? AND status='pending'", (plan_user['id'],))
 approve_text = telegram_bot.perform_approve(bot_conn, sub_id, 'test')
 check('bot approves a pending subscription', 'Approved' in approve_text and

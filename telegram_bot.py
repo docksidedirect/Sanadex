@@ -145,18 +145,13 @@ def _admin_row(cfg):
 
 
 def menu_keyboard(cfg):
-    rows = [
-        [_button('💰 Revenue', 'menu:stats'), _button('🆕 New trials', 'menu:trials')],
-        [_button('🔎 Look up', 'prompt:find'), _button('⏳ Pending', 'menu:pending')],
-        [_button('📅 Expiry', 'menu:expiry'), _button('📨 Digest now', 'menu:digest')],
-        [_button('❤️ Health', 'menu:health'), _button('❓ Help', 'menu:help')],
-    ]
-    return {'inline_keyboard': rows + _admin_row(cfg)}
+    """Telegram's own ☰ Menu is used; no inline keyboard is attached."""
+    return None
 
 
 def _actions_keyboard(rows=None):
-    rows = [row for row in (rows or []) if row]
-    return {'inline_keyboard': rows} if rows else None
+    """No inline action buttons; commands come from the ☰ Menu."""
+    return None
 
 
 COMMANDS = (
@@ -525,24 +520,7 @@ def _parse(text):
 
 
 def _send_menu(cfg, data, conn):
-    action = data.split(':', 1)[1] if ':' in data else 'help'
-    if action == 'stats':
-        body, keyboard = build_stats(conn, cfg)
-    elif action == 'trials':
-        body, keyboard = build_trials(conn, cfg)
-    elif action == 'pending':
-        body, keyboard = build_pending(conn, cfg)
-    elif action == 'expiry':
-        body, keyboard = build_expiry(conn, cfg)
-    elif action == 'health':
-        body, keyboard = build_health(conn, cfg)
-    elif action == 'digest':
-        body, keyboard = build_stats(conn, cfg)
-    elif action == 'find':
-        body, keyboard = 'Send /find <username, phone or id>.', menu_keyboard(cfg)
-    else:
-        body, keyboard = HELP_TEXT, menu_keyboard(cfg)
-    send(cfg, body, keyboard=keyboard)
+    send(cfg, 'Use the ☰ Menu button at the bottom-left of the chat to choose a command.')
 
 
 # --------------------------------------------------------------------------- #
