@@ -966,7 +966,9 @@ bot_cfg = {'token': '', 'chat_ids': [], 'public_url': 'https://example.test',
 bot_conn = conn()
 stats_text, stats_kb = telegram_bot.build_stats(bot_conn, bot_cfg)
 check('bot stats report revenue and licences',
-      'Revenue:' in stats_text and 'Active licences:' in stats_text and 'inline_keyboard' in stats_kb)
+      'Revenue:' in stats_text and 'Active licences:' in stats_text and stats_kb is None)
+check('bot menu is only built on demand',
+      'inline_keyboard' in telegram_bot.menu_keyboard(bot_cfg))
 license_module.request_subscription(bot_conn, plan_user['id'], '6m', 'test')
 pending_text, pending_kb = telegram_bot.build_pending(bot_conn, bot_cfg)
 check('bot lists pending subscriptions with approve buttons',
@@ -982,7 +984,7 @@ check('bot looks up a subscription', 'cashier2' in find_text and 'Plan:' in find
 expiry_text, expiry_kb = telegram_bot.build_expiry(bot_conn, bot_cfg)
 check('bot reports expiring subscriptions', 'Expiring' in expiry_text or 'No subscriptions' in expiry_text)
 health_text, health_kb = telegram_bot.build_health(bot_conn, bot_cfg)
-check('bot health check works', 'Database: OK' in health_text)
+check('bot health check works', 'Database: OK' in health_text and health_kb is None)
 sent = []
 original_send = telegram_bot.send
 telegram_bot.send = lambda cfg, text, chat_id=None, keyboard=None: sent.append(text) or True

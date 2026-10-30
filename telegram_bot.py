@@ -154,7 +154,29 @@ def menu_keyboard(cfg):
     return {'inline_keyboard': rows + _admin_row(cfg)}
 
 
+def _actions_keyboard(rows=None):
+    """Only contextual action buttons — the full menu is requested explicitly."""
+    rows = [row for row in (rows or []) if row]
+    return {'inline_keyboard': rows} if rows else None
+
+
+COMMANDS = (
+    ('menu', 'Open the bot menu'),
+    ('stats', 'Revenue and licence counts'),
+    ('pending', 'Subscriptions waiting for approval'),
+    ('find', 'Look up a subscription'),
+    ('approve', 'Approve a pending subscription'),
+    ('renew', 'Renew a subscription'),
+    ('digest', 'Send the daily digest now'),
+    ('expiry', 'Subscriptions expiring this week'),
+    ('health', 'Check this installation'),
+    ('admin', 'Open the admin licence screen'),
+    ('help', 'Show available commands'),
+)
+
 HELP_TEXT = ('🤖 Sanadex admin bot\n\n'
+             'Use the ☰ Menu button or /menu to open the menu. '
+             'Alerts are sent without extra buttons.\n\n'
              '/stats — revenue and licence counts\n'
              '/pending — subscriptions waiting for approval\n'
              '/find <user or id> — look up a subscription\n'
@@ -163,7 +185,30 @@ HELP_TEXT = ('🤖 Sanadex admin bot\n\n'
              '/digest — send the daily digest now\n'
              '/expiry — show subscriptions expiring this week\n'
              '/health — check this installation\n'
+             '/admin — open the admin licence screen\n'
              '/help — show available commands')
+
+
+def set_profile(cfg):
+    """Publish the bot description and native Menu commands (best effort)."""
+    token = cfg.get('token')
+    if not token:
+        return False
+    commands = json.dumps([{'command': name, 'description': text} for name, text in COMMANDS])
+    ok = False
+    for method, payload in (
+        ('setMyCommands', {'commands': commands}),
+        ('setChatMenuButton', {'menu_button': json.dumps({'type': 'commands'})}),
+        ('setMyDescription', {'description': 'Sanadex admin bot — trials, subscriptions, '
+                                            'renewals and daily reports.'}),
+        ('setShortDescription', {'description': 'Manage Sanadex subscriptions from Telegram.'}),
+    ):
+        try:
+            _api(method, payload, token)
+            ok = True
+        except Exception:
+            pass
+    return ok
 
 
 # --------------------------------------------------------------------------- #
@@ -220,13 +265,13 @@ def build_stats(conn, cfg):
             lines.append(f"• @{row.get('username')} — {_date(row.get('expires'))}")
     else:
         lines.append('No subscriptions expiring this week.')
-    return '\n'.join(lines), menu_keyboard(cfg)
+    return '\n'.join(lines), None
 
 
 def build_pending(conn, cfg):
     rows = license_lib.pending_requests(conn)
     if not rows:
-        return '✅ No pending subscriptions.', menu_keyboard(cfg)
+        return '✅ No pending subscriptions.', None
     lines = [f'⏳ Pending subscriptions ({len(rows)})', '']
     keyboard = []
     for row in rows[:10]:
@@ -239,8 +284,7 @@ def build_pending(conn, cfg):
             _button(f"✅ {row.get('username')}", f"approve:{row.get('id')}"),
             _button('✖ Reject', f"reject:{row.get('id')}"),
         ])
-    keyboard += _admin_row(cfg)
-    return '\n'.join(lines), {'inline_keyboard': keyboard}
+    return '\n'.join(lines), _actions_keyboard(keyboard)
 
 
 def _find_user(conn, term):
@@ -256,7 +300,7 @@ def _find_user(conn, term):
 def build_find(conn, cfg, term):
     user = _find_user(conn, term)
     if not user:
-        return f'No account matches “{term}”.', menu_keyboard(cfg)
+        return f'No account matches “{term}”.', None
     state = license_lib.user_state(conn, user)
     sub = license_lib.active_subscription(conn, user['id'])
     info = license_lib.plan(sub['plan']) if sub else None
@@ -282,14 +326,13 @@ def build_find(conn, cfg, term):
         _button('+3 months', f"renew:{user['id']}:3m"),
         _button('+1 year', f"renew:{user['id']}:1y"),
     ]]
-    keyboard += _admin_row(cfg)
-    return '\n'.join(lines), {'inline_keyboard': keyboard}
+    return '\n'.join(lines), _actions_keyboard(keyboard)
 
 
 def build_expiry(conn, cfg, days=7):
     rows = _expiring_rows(conn, days)
     if not rows:
-        return '✅ No subscriptions expiring this week.', menu_keyboard(cfg)
+        return '✅ No subscriptions expiring this week.', None
     lines = [f'📅 Expiring in the next {days} days', '']
     keyboard = []
     for row in rows[:10]:
@@ -299,8 +342,7 @@ def build_expiry(conn, cfg, days=7):
                      f"{_date(row['expires'])} ({left} days)")
         keyboard.append([_button(f"Renew @{row.get('username')} +30d",
                                  f"renew:{row.get('user_id')}:1m")])
-    keyboard += _admin_row(cfg)
-    return '\n'.join(lines), {'inline_keyboard': keyboard}
+    return '\n'.join(lines), _actions_keyboard(keyboard)
 
 
 def build_health(conn, cfg):
@@ -315,9 +357,9 @@ def build_health(conn, cfg):
                  f'Subscriptions: {len(_active_sub_rows(conn))} active, {pending} pending',
                  f'Server time: {time.strftime("%Y-%m-%d %H:%M")}',
                  f'Version: {APP_VERSION}']
-        return '\n'.join(lines), menu_keyboard(cfg)
+        return '\n'.join(lines), None
     except Exception as exc:
-        return f'💔 Health check failed: {str(exc)[:300]}', menu_keyboard(cfg)
+        return f'💔 Health check failed: {str(exc)[:300]}', None
 
 
 # --------------------------------------------------------------------------- #
@@ -449,8 +491,14 @@ def handle_update(update, cfg=None):
         elif command == '/health':
             body, keyboard = build_health(conn, cfg)
             send(cfg, body, keyboard=keyboard)
+        elif command == '/admin':
+            if cfg.get('public_url'):
+                send(cfg, 'Open the admin licence screen:\n'
+                          f"{cfg['public_url']}/license")
+            else:
+                send(cfg, 'Set SANADEX_PUBLIC_URL (or Public URL on the Licence screen) first.')
         else:
-            send(cfg, 'Unknown command. Send /help.', keyboard=menu_keyboard(cfg))
+            send(cfg, 'Unknown command. Send /help or use the ☰ Menu.')
     finally:
         conn.close()
 
@@ -505,9 +553,7 @@ def notify_new_account(user_id, requested_plan=''):
              f"Device: {platform.node() or 'server'} ({platform.system().lower() or platform.platform()})",
              f"Device ID: {license_lib.machine_id()}",
              f"Time: {time.strftime('%Y-%m-%d %H:%M')}"]
-    keyboard = menu_keyboard(cfg) if cfg.get('public_url') else None
-    threading.Thread(target=send, args=(cfg, '\n'.join(lines)),
-                     kwargs={'keyboard': keyboard}, daemon=True).start()
+    threading.Thread(target=send, args=(cfg, '\n'.join(lines)), daemon=True).start()
 
 
 def _set_meta(conn, key, value):
@@ -541,11 +587,14 @@ def _digest_loop():
 
 def _poll_loop():
     offset = 0
+    profile_token = None
     while True:
         cfg = config()
         if not (cfg.get('enabled') and cfg.get('token') and cfg.get('chat_ids')):
             time.sleep(30)
             continue
+        if profile_token != cfg['token'] and set_profile(cfg):
+            profile_token = cfg['token']
         try:
             data = _api('getUpdates', {'offset': offset, 'timeout': 25}, cfg['token'])
         except Exception:
