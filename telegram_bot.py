@@ -145,27 +145,49 @@ def _admin_row(cfg):
 
 
 def menu_keyboard(cfg):
-    """The bot is notification-only; no inline menu is ever attached."""
-    return None
+    rows = [
+        [_button('💰 Revenue', 'menu:stats'), _button('🆕 New trials', 'menu:trials')],
+        [_button('🔎 Look up', 'prompt:find'), _button('⏳ Pending', 'menu:pending')],
+        [_button('📅 Expiry', 'menu:expiry'), _button('📨 Digest now', 'menu:digest')],
+        [_button('❤️ Health', 'menu:health'), _button('❓ Help', 'menu:help')],
+    ]
+    return {'inline_keyboard': rows + _admin_row(cfg)}
 
 
 def _actions_keyboard(rows=None):
-    """The bot no longer exposes action buttons in Telegram."""
-    return None
+    rows = [row for row in (rows or []) if row]
+    return {'inline_keyboard': rows} if rows else None
 
 
 COMMANDS = (
-    ('start', 'Start Sanadex notifications'),
+    ('start', 'Open the Sanadex menu'),
+    ('menu', 'Open the Sanadex menu'),
+    ('revenue', 'Revenue and licence counts'),
+    ('trials', 'New trial accounts'),
+    ('find', 'Look up a subscription'),
+    ('pending', 'Subscriptions waiting for approval'),
+    ('expiry', 'Subscriptions expiring this week'),
+    ('digest', 'Send the daily digest now'),
+    ('health', 'Check this installation'),
+    ('admin', 'Open the admin licence screen'),
+    ('help', 'Show available commands'),
 )
 
-HELP_TEXT = ('🤖 Sanadex notifications\n\n'
-             'This bot only sends notifications: new trials, the daily digest '
-             'and expiry alerts.\n\n'
-             'Use /start to confirm. Manage licences from the Sanadex admin panel.')
+HELP_TEXT = ('🤖 Sanadex admin bot\n\n'
+             'Use the ☰ Menu button or /start to open the menu.\n\n'
+             '/revenue — revenue and licence counts\n'
+             '/trials — new trial accounts\n'
+             '/find <user or id> — look up a subscription\n'
+             '/pending — subscriptions waiting for approval\n'
+             '/expiry — subscriptions expiring this week\n'
+             '/digest — send the daily digest now\n'
+             '/health — check this installation\n'
+             '/admin — open the admin licence screen\n'
+             '/help — show available commands')
 
 
 def set_profile(cfg):
-    """Publish a notification-only description and a single /start command."""
+    """Publish the bot description and native command menu (best effort)."""
     token = cfg.get('token')
     if not token:
         return False
@@ -174,9 +196,9 @@ def set_profile(cfg):
     for method, payload in (
         ('setMyCommands', {'commands': commands}),
         ('setChatMenuButton', {'menu_button': json.dumps({'type': 'commands'})}),
-        ('setMyDescription', {'description': 'Sanadex notifications — new trials, '
-                                            'daily digest and expiry alerts.'}),
-        ('setShortDescription', {'description': 'Sanadex subscription notifications.'}),
+        ('setMyDescription', {'description': 'Sanadex admin bot — revenue, trials, '
+                                            'subscriptions and daily reports.'}),
+        ('setShortDescription', {'description': 'Manage Sanadex subscriptions from Telegram.'}),
     ):
         try:
             _api(method, payload, token)
@@ -241,6 +263,20 @@ def build_stats(conn, cfg):
     else:
         lines.append('No subscriptions expiring this week.')
     return '\n'.join(lines), None
+
+
+def build_trials(conn, cfg):
+    rows = [row for row in license_lib.user_trials(conn)
+            if row['licence'].get('plan') == 'trial']
+    if not rows:
+        return '✅ No trial accounts right now.', menu_keyboard(cfg)
+    rows.sort(key=lambda row: row['licence'].get('days_left') or 0)
+    lines = [f'🆕 Trial accounts ({len(rows)})', '']
+    for row in rows[:15]:
+        lines.append(f"• {row.get('full_name') or row.get('username')} "
+                     f"(@{row.get('username')}) — {row['licence'].get('days_left')} days left "
+                     f"· started {_date(row.get('trial_started'))}")
+    return '\n'.join(lines), menu_keyboard(cfg)
 
 
 def build_pending(conn, cfg):
@@ -431,18 +467,17 @@ def handle_update(update, cfg=None):
     if not text:
         return
     command, args = _parse(text)
-    if command not in ('/start', '/help'):
-        send(cfg, 'This bot only sends notifications. Use the Sanadex admin panel '
-                  'to manage licences and subscriptions.')
-        return
     conn = db.connect()
     try:
         if command in ('/start', '/menu'):
             send(cfg, HELP_TEXT, keyboard=menu_keyboard(cfg))
         elif command == '/help':
             send(cfg, HELP_TEXT, keyboard=menu_keyboard(cfg))
-        elif command == '/stats':
+        elif command in ('/stats', '/revenue'):
             body, keyboard = build_stats(conn, cfg)
+            send(cfg, body, keyboard=keyboard)
+        elif command == '/trials':
+            body, keyboard = build_trials(conn, cfg)
             send(cfg, body, keyboard=keyboard)
         elif command == '/pending':
             body, keyboard = build_pending(conn, cfg)
@@ -490,8 +525,24 @@ def _parse(text):
 
 
 def _send_menu(cfg, data, conn):
-    send(cfg, 'This menu is no longer available. The bot only sends notifications. '
-              'Use /start on a new message.')
+    action = data.split(':', 1)[1] if ':' in data else 'help'
+    if action == 'stats':
+        body, keyboard = build_stats(conn, cfg)
+    elif action == 'trials':
+        body, keyboard = build_trials(conn, cfg)
+    elif action == 'pending':
+        body, keyboard = build_pending(conn, cfg)
+    elif action == 'expiry':
+        body, keyboard = build_expiry(conn, cfg)
+    elif action == 'health':
+        body, keyboard = build_health(conn, cfg)
+    elif action == 'digest':
+        body, keyboard = build_stats(conn, cfg)
+    elif action == 'find':
+        body, keyboard = 'Send /find <username, phone or id>.', menu_keyboard(cfg)
+    else:
+        body, keyboard = HELP_TEXT, menu_keyboard(cfg)
+    send(cfg, body, keyboard=keyboard)
 
 
 # --------------------------------------------------------------------------- #

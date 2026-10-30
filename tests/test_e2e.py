@@ -1040,12 +1040,12 @@ bot_conn = conn()
 stats_text, stats_kb = telegram_bot.build_stats(bot_conn, bot_cfg)
 check('bot stats report revenue and licences',
       'Revenue:' in stats_text and 'Active licences:' in stats_text and stats_kb is None)
-check('bot no longer exposes an inline menu',
-      telegram_bot.menu_keyboard(bot_cfg) is None)
+check('bot exposes the management menu',
+      'inline_keyboard' in telegram_bot.menu_keyboard(bot_cfg))
 license_module.request_subscription(bot_conn, plan_user['id'], '6m', 'test')
 pending_text, pending_kb = telegram_bot.build_pending(bot_conn, bot_cfg)
-check('bot pending list has no action buttons',
-      'cashier2' in pending_text and pending_kb is None, pending_text)
+check('bot lists pending subscriptions with approve buttons',
+      'cashier2' in pending_text and 'approve:' in str(pending_kb), pending_text)
 sub_id = value("SELECT id FROM subscriptions WHERE user_id=? AND status='pending'", (plan_user['id'],))
 approve_text = telegram_bot.perform_approve(bot_conn, sub_id, 'test')
 check('bot approves a pending subscription', 'Approved' in approve_text and
@@ -1070,8 +1070,11 @@ try:
                                dict(bot_cfg, chat_ids=['42']))
 finally:
     telegram_bot.send = original_send
-check('bot answers /start, refuses other commands and ignores strangers',
-      len(sent) == 2 and 'notifications' in sent[0] and 'only sends notifications' in sent[1], sent)
+check('bot answers /start and /stats and ignores strangers',
+      len(sent) == 2 and 'Sanadex admin bot' in sent[0] and 'Revenue:' in sent[1], sent)
+trials_text, trials_kb = telegram_bot.build_trials(bot_conn, bot_cfg)
+check('bot lists trial accounts', 'Trial accounts' in trials_text or
+      'No trial accounts' in trials_text, trials_text)
 original_api = telegram_bot._api
 telegram_bot._api = lambda method, payload, token: {'ok': True, 'result': [
     {'message': {'chat': {'id': 4242, 'first_name': 'Owner', 'username': 'owner'}}}]}
