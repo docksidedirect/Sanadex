@@ -179,6 +179,14 @@ status, headers, body = https_client.request('/login', extra={'HTTP_X_FORWARDED_
 check('HTTPS cookie is marked Secure', 'Secure' in headers.get('Set-Cookie', ''), headers.get('Set-Cookie'))
 check('HTTPS sends HSTS', headers.get('Strict-Transport-Security', '').startswith('max-age='),
       headers.get('Strict-Transport-Security'))
+os.environ['SANADEX_FORCE_HTTPS'] = '1'
+try:
+    status, headers, body = Client().request('/login')
+finally:
+    os.environ.pop('SANADEX_FORCE_HTTPS', None)
+check('forced HTTPS sets Secure cookie and HSTS',
+      'Secure' in headers.get('Set-Cookie', '') and
+      headers.get('Strict-Transport-Security', '').startswith('max-age='))
 
 status, headers, body = admin.get('/')
 check('dashboard renders', status.startswith('200') and 'Sanadex.wanis.online' in body, status)

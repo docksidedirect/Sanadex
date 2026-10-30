@@ -183,6 +183,9 @@ class Request:
 
     def is_https(self):
         """True when the browser reached us over HTTPS (directly or via proxy)."""
+        forced = str(os.environ.get('SANADEX_FORCE_HTTPS') or '').strip().lower()
+        if forced in ('1', 'true', 'yes', 'on'):
+            return True
         proto = (self.environ.get('HTTP_X_FORWARDED_PROTO') or '').split(',')[0].strip().lower()
         return (proto == 'https' or self.environ.get('wsgi.url_scheme') == 'https'
                 or str(self.environ.get('HTTPS') or '').lower() in ('on', '1'))

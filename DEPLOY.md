@@ -33,6 +33,7 @@ Environment variables (all optional; defaults in brackets):
 | --- | --- |
 | `SANADEX_SECRET` | session signing key — **set in production** |
 | `SANADEX_LICENSE_SECRET` | signs generated licence keys — keep private |
+| `SANADEX_FORCE_HTTPS` | `1` behind a TLS proxy — enables Secure cookies + HSTS |
 | `SANADEX_DB_PATH` | SQLite file [`sanadex.db` next to `app.py`] |
 | `SANADEX_BACKUP_DIR` | backups folder [`backups/`] |
 | `SANADEX_UPLOAD_DIR` | logos/uploads folder [`uploads/`] |
