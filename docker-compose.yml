@@ -2,18 +2,32 @@ services:
   sanadex:
     build: .
     image: sanadex-wanis-online:latest
-    container_name: sanadex
     restart: unless-stopped
-    env_file:
-      - .env
+    # Values come from the shell / Coolify environment. Docker Compose also
+    # reads a local .env file for the ${...} substitutions below.
     environment:
       SANADEX_DB_PATH: /data/sanadex.db
       SANADEX_BACKUP_DIR: /data/backups
       SANADEX_UPLOAD_DIR: /data/uploads
       PORT: "8000"
-    # Only the reverse proxy (nginx/Caddy) should reach the app.
-    ports:
-      - "127.0.0.1:8000:8000"
+      SANADEX_SECRET: ${SANADEX_SECRET:-}
+      SANADEX_LICENSE_SECRET: ${SANADEX_LICENSE_SECRET:-}
+      SANADEX_ADMIN_PASSWORD: ${SANADEX_ADMIN_PASSWORD:-}
+      SANADEX_DEBUG: ${SANADEX_DEBUG:-}
+      SANADEX_DB: ${SANADEX_DB:-}
+      SANADEX_MSSQL_DSN: ${SANADEX_MSSQL_DSN:-}
+      # Telegram bot (optional). You can also configure it from the Licence screen.
+      SANADEX_TELEGRAM_TOKEN: ${SANADEX_TELEGRAM_TOKEN:-}
+      SANADEX_TELEGRAM_CHAT_ID: ${SANADEX_TELEGRAM_CHAT_ID:-}
+      SANADEX_TELEGRAM_DIGEST_HOUR: ${SANADEX_TELEGRAM_DIGEST_HOUR:-}
+      SANADEX_PUBLIC_URL: ${SANADEX_PUBLIC_URL:-}
+      SANADEX_TELEGRAM_DISABLE: ${SANADEX_TELEGRAM_DISABLE:-}
+    # Coolify's proxy reaches the container on port 8000; no host port is needed.
+    expose:
+      - "8000"
+    # For local testing without Coolify, uncomment:
+    # ports:
+    #   - "127.0.0.1:8000:8000"
     volumes:
       - ./data:/data
     healthcheck:

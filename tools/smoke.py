@@ -73,7 +73,8 @@ skip = {'login', 'logout', 'set_lang', 'set_theme', 'backup_download', 'gdrive_c
         'crud_edit', 'set_lang', 'sale_invoice_new', 'purchase_invoice_new', 'order_new',
         'item_import', 'barcode', 'transfer_new', 'voucher_new', 'journal_new',
         'license_download', 'license_generate', 'license_activate', 'license_revoke',
-        'license_user_action', 'signup'}
+        'license_user_action', 'license_telegram', 'license_telegram_detect',
+        'license_telegram_test', 'signup'}
 
 problems = []
 for name, methods, regex, pattern, fn in app.router.routes:

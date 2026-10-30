@@ -201,9 +201,9 @@ NAV = [
         ('roles', 'roles', 'shield', 'admin'),
         ('license', 'license', 'key', 'admin'),
         ('settings', 'settings', 'settings', 'p_settings'),
-        ('backup_restore', 'backup', 'database', 'p_settings'),
-        ('audit', 'audit_log', 'list', 'p_settings'),
-        ('system_info', 'system_info', 'info', 'p_settings'),
+        ('backup_restore', 'backup', 'database', 'admin'),
+        ('audit', 'audit_log', 'list', 'admin'),
+        ('system_info', 'system_info', 'info', 'admin'),
     ]),
 ]
 

@@ -845,7 +845,7 @@ check('admin can reset a trial back to 14 days',
       reset_state['state'] == 'trial' and reset_state['days_left'] == 14, reset_state)
 
 status, headers, body = admin.get('/license')
-check('licence screen lists user trials', 'تجارب المستخدمين' in body and 'seller' in body)
+check('licence screen lists user trials', 'المستخدمون والاشتراكات' in body and 'seller' in body)
 
 installation_key = license_module.generate('Installation licence', 'standard', 5, 365)
 admin.post('/license/activate', {'key': installation_key})
@@ -881,25 +881,45 @@ signup_client = Client()
 status, headers, body = signup_client.get('/signup')
 check('sign-up page is public',
       status.startswith('200') and 'إنشاء حساب جديد' in body, status)
+check('sign-up shows the subscription plans',
+      'شهر واحد' in body and '3 أشهر' in body and 'سنة كاملة' in body and 'مدى الحياة' in body)
+check('one-year plan is 2,999', '2,999.00' in body and 'سنة كاملة' in body)
 check('login page links to sign-up', 'أنشئ حساباً' in visitor.get('/login')[2])
 
 new_account = {'full_name': 'New Cashier', 'username': 'cashier1', 'phone': '0100',
                'email': 'cashier@example.com', 'password': 'Pass1234', 'password2': 'Pass1234'}
 status, headers, body = signup_client.post('/signup', new_account)
-pending_user = row("SELECT * FROM users WHERE username='cashier1'")
-check('sign-up creates a disabled (pending) account',
-      status.startswith('302') and pending_user and pending_user['active'] == 0,
-      pending_user and pending_user['active'])
-check('pending account is not an administrator', pending_user['is_admin'] == 0)
-check('admin is warned about the pending account', 'بانتظار موافقتك' in admin.get('/')[2])
+new_user = row("SELECT * FROM users WHERE username='cashier1'")
+check('sign-up activates the account immediately',
+      status.startswith('302') and new_user and new_user['active'] == 1,
+      new_user and new_user['active'])
+check('sign-up starts the 14-day trial at creation',
+      new_user and (new_user['trial_started'] or 0) > 0)
+check('new account is not an administrator', new_user['is_admin'] == 0)
+check('new account gets the built-in Staff role',
+      new_user['role_id'] == value("SELECT id FROM roles WHERE name='Staff' and is_system=1"))
 status, headers, body = admin.get('/users')
-check('users list marks pending accounts',
-      'cashier1' in body and 'بانتظار الموافقة' in body)
+check('users list shows the active account',
+      'cashier1' in body and 'بانتظار الموافقة' not in body)
 
-pending_client = Client()
-status, headers, body = pending_client.post('/login',
-                                           {'username': 'cashier1', 'password': 'Pass1234'})
-check('pending account cannot sign in before approval', not status.startswith('302'), status)
+new_client = Client()
+status, headers, body = new_client.post('/login',
+                                       {'username': 'cashier1', 'password': 'Pass1234'})
+check('new account can sign in immediately', status.startswith('302'), status)
+new_state = license_module.user_state(conn(), row("SELECT * FROM users WHERE username='cashier1'"))
+check('new account has a 14-day trial', new_state['state'] == 'trial' and new_state['days_left'] == 14,
+      new_state)
+status, headers, body = new_client.get('/items')
+check('new account can use the features', status.startswith('200'), status)
+status, headers, body = new_client.get('/license')
+check('license generation stays admin-only for new users', status.startswith('403'), status)
+for admin_path in ('/users', '/roles'):
+    status, headers, body = new_client.get(admin_path)
+    check(f'new user cannot manage {admin_path}', status.startswith('403'), status)
+status, headers, body = new_client.get('/')
+check('new user sidebar hides the licence generator',
+      'href="/license"' not in body and 'href="/items"' in body, status)
+check('no pending-approval warning for the admin', 'بانتظار موافقتك' not in admin.get('/')[2])
 
 status, headers, body = signup_client.post('/signup', dict(new_account, username='cashier1'))
 check('duplicate username is rejected',
@@ -911,17 +931,97 @@ status, headers, body = signup_client.post('/signup', dict(new_account, username
                                                           password2='Different1'))
 check('password confirmation is enforced', 'غير متطابقتين' in body)
 
-admin.post(f"/users/{pending_user['id']}/edit", {
-    'username': 'cashier1', 'full_name': 'New Cashier', 'phone': '0100',
-    'email': 'cashier@example.com', 'role_id': '', 'treasury_id': '', 'store_id': '',
-    'lang': 'ar', 'is_admin': '', 'active': 'on', 'notes': ''})
-approved = row("SELECT * FROM users WHERE username='cashier1'")
-check('admin can approve the account from Users', approved['active'] == 1)
-status, headers, body = pending_client.post('/login',
-                                           {'username': 'cashier1', 'password': 'Pass1234'})
-check('approved account can sign in', status.startswith('302'), status)
-approved_state = license_module.user_state(conn(), row("SELECT * FROM users WHERE username='cashier1'"))
-check('approved account starts its 14-day trial', approved_state['state'] == 'trial', approved_state)
+# a paid plan chosen at sign-up becomes a request the admin can activate
+plan_account = dict(new_account, username='cashier2', full_name='Plan Buyer',
+                    password='Pass1234', password2='Pass1234', plan='3m')
+status, headers, body = signup_client.post('/signup', plan_account)
+plan_user = row("SELECT * FROM users WHERE username='cashier2'")
+pending_request = row("SELECT * FROM subscriptions WHERE user_id=? AND status='pending'",
+                      (plan_user['id'],))
+check('a chosen plan is stored as a pending request',
+      pending_request and pending_request['plan'] == '3m' and pending_request['price'] == 999,
+      pending_request)
+licence_page = admin.get('/license')[2]
+check('admin licence page lists the subscription request',
+      'cashier2' in licence_page and '3 أشهر' in licence_page)
+admin.post('/license/user', {'uid': str(plan_user['id']), 'action': 'renew', 'plan': '3m'})
+plan_state = license_module.user_state(conn(), row("SELECT * FROM users WHERE id=?", (plan_user['id'],)))
+check('admin activates the requested plan',
+      plan_state['state'] == 'licensed' and plan_state['plan'] == '3m', plan_state)
+check('activation clears the pending request',
+      value("SELECT COUNT(*) c FROM subscriptions WHERE user_id=? AND status='pending'",
+            (plan_user['id'],)) == 0)
+status, headers, body = admin.get(f"/license/share/{plan_user['id']}")
+check('admin can share the user licence as text',
+      status.startswith('200') and 'cashier2' in body and '3 months' in body, status)
+admin.post('/license/user', {'uid': str(plan_user['id']), 'action': 'cancel'})
+check('cancelling a subscription returns the user to the trial',
+      license_module.user_state(conn(), row("SELECT * FROM users WHERE id=?",
+                                            (plan_user['id'],)))['state'] == 'trial')
+
+# Telegram bot builders run against the same data (no network needed)
+import telegram_bot  # noqa: E402
+bot_cfg = {'token': '', 'chat_ids': [], 'public_url': 'https://example.test',
+           'currency': 'EGP', 'enabled': False, 'digest_hour': 21, 'company': 'Sanadex'}
+bot_conn = conn()
+stats_text, stats_kb = telegram_bot.build_stats(bot_conn, bot_cfg)
+check('bot stats report revenue and licences',
+      'Revenue:' in stats_text and 'Active licences:' in stats_text and 'inline_keyboard' in stats_kb)
+license_module.request_subscription(bot_conn, plan_user['id'], '6m', 'test')
+pending_text, pending_kb = telegram_bot.build_pending(bot_conn, bot_cfg)
+check('bot lists pending subscriptions with approve buttons',
+      'cashier2' in pending_text and 'approve:' in str(pending_kb), pending_text)
+sub_id = value("SELECT id FROM subscriptions WHERE user_id=? AND status='pending'", (plan_user['id'],))
+approve_text = telegram_bot.perform_approve(bot_conn, sub_id, 'test')
+check('bot approves a pending subscription', 'Approved' in approve_text and
+      license_module.user_state(bot_conn, row("SELECT * FROM users WHERE id=?", (plan_user['id'],)))['plan'] == '6m')
+renew_text = telegram_bot.perform_renew(bot_conn, bot_cfg, plan_user['id'], '1m')
+check('bot renews a subscription by 30 days', 'Renewed' in renew_text)
+find_text, find_kb = telegram_bot.build_find(bot_conn, bot_cfg, 'cashier2')
+check('bot looks up a subscription', 'cashier2' in find_text and 'Plan:' in find_text)
+expiry_text, expiry_kb = telegram_bot.build_expiry(bot_conn, bot_cfg)
+check('bot reports expiring subscriptions', 'Expiring' in expiry_text or 'No subscriptions' in expiry_text)
+health_text, health_kb = telegram_bot.build_health(bot_conn, bot_cfg)
+check('bot health check works', 'Database: OK' in health_text)
+sent = []
+original_send = telegram_bot.send
+telegram_bot.send = lambda cfg, text, chat_id=None, keyboard=None: sent.append(text) or True
+try:
+    telegram_bot.handle_update({'message': {'chat': {'id': 42}, 'text': '/health'}},
+                               dict(bot_cfg, chat_ids=['42']))
+    telegram_bot.handle_update({'message': {'chat': {'id': 7}, 'text': '/health'}},
+                               dict(bot_cfg, chat_ids=['42']))
+finally:
+    telegram_bot.send = original_send
+check('bot answers an authorised command and ignores strangers',
+      len(sent) == 1 and 'Database: OK' in sent[0], sent)
+original_api = telegram_bot._api
+telegram_bot._api = lambda method, payload, token: {'ok': True, 'result': [
+    {'message': {'chat': {'id': 4242, 'first_name': 'Owner', 'username': 'owner'}}}]}
+try:
+    chats = telegram_bot.recent_chats('token')
+    check('bot detects recent chats', chats and chats[0]['id'] == '4242', chats)
+    detect_conn = conn()
+    detect_conn.execute("UPDATE company SET telegram_token='test-token' WHERE id=1")
+    detect_conn.commit()
+    detect_conn.close()
+    status, headers, body = admin.post('/license/telegram/detect', {'telegram_token': 'test-token'})
+    detected = value('SELECT telegram_chat_id FROM company WHERE id=1')
+    check('detect button saves the chat id',
+          status.startswith('302') and str(detected) == '4242', detected)
+finally:
+    telegram_bot._api = original_api
+os.environ['SANADEX_PUBLIC_URL'] = 'https://env.example'
+os.environ['SANADEX_TELEGRAM_DIGEST_HOUR'] = '7'
+try:
+    env_cfg = telegram_bot.config()
+finally:
+    os.environ.pop('SANADEX_PUBLIC_URL', None)
+    os.environ.pop('SANADEX_TELEGRAM_DIGEST_HOUR', None)
+check('Coolify env overrides the bot public URL and digest hour',
+      env_cfg['public_url'] == 'https://env.example' and env_cfg['digest_hour'] == 7, env_cfg)
+bot_conn.close()
+
 
 disable = conn()
 disable.execute('UPDATE company SET allow_signup=0 WHERE id=1')

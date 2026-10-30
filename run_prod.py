@@ -22,10 +22,12 @@ sys.path.insert(0, BASE)
 
 import db  # noqa: E402
 import app as app_module  # noqa: E402
+import telegram_bot  # noqa: E402
 
 
 def main():
     db.init_db()
+    telegram_bot.start()
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', '8000'))
     threads = int(os.environ.get('WEB_THREADS', '8'))

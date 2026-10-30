@@ -434,6 +434,24 @@ def deny_admin_user_delete(req, row):
     return None
 
 
+def users_before_save(req, data, row):
+    """New accounts start their 14-day trial at creation, not at first login."""
+    if row:
+        return
+    now = time.time()
+    data['created_at'] = now
+    if not data.get('is_admin'):
+        data['trial_started'] = now
+        if not data.get('role_id'):
+            data['role_id'] = db.default_role_id(req.db)
+
+
+def deny_system_role_delete(req, row):
+    if row.get('is_system'):
+        return T(req, 'cannot_delete_system_role')
+    return None
+
+
 def deny_store_delete(req, row):
     used = scalar(req.db, 'SELECT COUNT(*) c FROM stock_movements WHERE store_id=?', (row['id'],))
     if used:
@@ -807,8 +825,8 @@ Crud('roles', 'roles', 'roles', [
     F(name='notes', label='notes', type='text')] +
     [F(name=perm, label=label_key, type='checkbox') for perm, label_key in i18n.PERM_KEYS],
     [L('name', 'role')] + [L(perm, label_key, fmt=f_bool(perm)) for perm, label_key in i18n.PERM_KEYS],
-    perm='p_settings', subtitle='roles_sub', can_delete=True, icon='shield', order='id',
-    search=['name'])
+    perm='admin', subtitle='roles_sub', can_delete=True, icon='shield', order='id',
+    search=['name'], delete_guard=deny_system_role_delete)
 
 Crud('users', 'users', 'users', [
     F(name='username', label='username', type='text', required=1),
@@ -831,5 +849,5 @@ Crud('users', 'users', 'users', [
      L('treasury_id', 'assigned_treasury', fmt=f_lookup('treasuries', 'treasury_id')),
      L('store_id', 'assigned_store', fmt=f_lookup('stores', 'store_id')),
      L('is_admin', 'is_admin', fmt=f_bool('is_admin')), L('active', 'active', fmt=f_active('active'))],
-    perm='p_settings', subtitle='users_sub', search=['username', 'full_name', 'phone'], icon='users',
-    delete_guard=deny_admin_user_delete)
+    perm='admin', subtitle='users_sub', search=['username', 'full_name', 'phone'], icon='users',
+    delete_guard=deny_admin_user_delete, before_save=users_before_save)

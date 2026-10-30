@@ -6,6 +6,22 @@
 <title>{{ t('signup') }} · Sanadex.wanis.online</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/app.css?v=4">
+<style>
+  .plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 4px 0 14px; }
+  .plan-card { position: relative; display: block; cursor: pointer; }
+  .plan-card input { position: absolute; opacity: 0; pointer-events: none; }
+  .plan-body { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line, #ddd);
+    border-radius: 10px; padding: 10px 12px; background: var(--card, #fff); height: 100%; }
+  .plan-card.is-on .plan-body, .plan-card:has(input:checked) .plan-body {
+    border-color: var(--accent, #b5623a);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #b5623a) 18%, transparent); }
+  .plan-name { font-weight: 700; font-size: 13px; }
+  .plan-price { font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+  .plan-price em { font-style: normal; font-size: 11px; font-weight: 600; color: var(--muted, #777); }
+  .plan-note { font-size: 10.5px; color: var(--muted, #777); }
+  .plan-card.is-full { grid-column: 1 / -1; }
+  @media (max-width: 460px) { .plan-grid { grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
 <div class="auth">
@@ -28,7 +44,7 @@
   </aside>
 
   <main class="auth-main">
-    <div class="auth-card">
+    <div class="auth-card" style="width:min(500px,100%)">
       <div class="auth-lang">
         <a class="chip {{ 'is-on' if lang == 'ar' }}" href="{{ url_for('set_lang', code='ar') }}?next=/signup">العربية</a>
         <a class="chip {{ 'is-on' if lang == 'en' }}" href="{{ url_for('set_lang', code='en') }}?next=/signup">English</a>
@@ -43,6 +59,29 @@
           {% else %}
             {% if error %}<div class="flash danger" style="margin-bottom:12px">{{ error }}</div>{% endif %}
             <form method="post" action="{{ url_for('signup') }}" data-busy="off" autocomplete="off">
+              <div class="section-label">{{ t('choose_plan') }}</div>
+              <p class="tiny muted" style="margin:0 0 8px">{{ t('choose_plan_hint', days=trial_days) }}</p>
+              <div class="plan-grid">
+                <label class="plan-card {{ 'is-on' if selected_plan == 'trial' }}">
+                  <input type="radio" name="plan" value="trial" {{ 'checked' if selected_plan == 'trial' }}>
+                  <span class="plan-body">
+                    <span class="plan-name">{{ t('plan_trial') }}</span>
+                    <span class="plan-price">{{ t('free') }}</span>
+                    <span class="plan-note">{{ t('plan_trial_days', days=trial_days) }}</span>
+                  </span>
+                </label>
+                {% for plan in plans %}
+                <label class="plan-card {{ 'is-on' if selected_plan == plan.key }} {{ 'is-full' if plan.key == 'lifetime' }}">
+                  <input type="radio" name="plan" value="{{ plan.key }}" {{ 'checked' if selected_plan == plan.key }}>
+                  <span class="plan-body">
+                    <span class="plan-name">{{ t('plan_' + plan.key) }}</span>
+                    <span class="plan-price">{{ plan.price|money }} <em>{{ company.currency or 'EGP' }}</em></span>
+                    <span class="plan-note">{% if plan.days %}{{ t('plan_days', days=plan.days) }}{% else %}{{ t('plan_never_expires') }}{% endif %}</span>
+                  </span>
+                </label>
+                {% endfor %}
+              </div>
+
               <div class="field" style="margin-bottom:10px">
                 <label class="label" for="full_name">{{ t('full_name') }} <span class="req">*</span></label>
                 <input class="input" id="full_name" name="full_name" value="{{ form.get('full_name', '') }}" required>
@@ -86,5 +125,16 @@
   </main>
 </div>
 <script src="/static/app.js?v=4"></script>
+<script>
+(function () {
+  document.querySelectorAll('.plan-card input').forEach(function (input) {
+    input.addEventListener('change', function () {
+      document.querySelectorAll('.plan-card').forEach(function (card) {
+        card.classList.toggle('is-on', !!card.querySelector('input:checked'));
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>

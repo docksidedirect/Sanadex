@@ -20,14 +20,14 @@
         <div class="form-grid">
           <div class="span-4 field"><span class="label">{{ t('license_customer') }}</span>
             <span class="strong">{{ lic.customer or '—' }}</span></div>
-          <div class="span-4 field"><span class="label">{{ t('license_edition') }}</span>
-            <span class="strong">{{ t('edition_' + lic.edition) }}</span></div>
-          <div class="span-4 field"><span class="label">{{ t('license_seats') }}</span>
-            <span class="strong mono">{{ lic.seats }}</span></div>
+          <div class="span-4 field"><span class="label">{{ t('subscription_plan') }}</span>
+            <span class="strong">{{ t(lic.plan_label) if lic.plan_label else t('edition_' + lic.edition) }}</span></div>
           <div class="span-4 field"><span class="label">{{ t('license_expires') }}</span>
-            <span class="mono">{{ lic.expires or '—' }}</span></div>
+            <span class="mono">{{ lic.expires or (t('plan_never_expires') if lic.state == 'licensed' else '—') }}</span></div>
           <div class="span-4 field"><span class="label">{{ t('license_days_left') }}</span>
             <span class="mono">{{ lic.days_left if lic.days_left is not none else '∞' }}</span></div>
+          <div class="span-4 field"><span class="label">{{ t('license_seats') }}</span>
+            <span class="strong mono">{{ lic.seats }}</span></div>
           <div class="span-4 field"><span class="label">{{ t('license_machine_id') }}</span>
             <span class="row" style="gap:6px">
               <span class="mono-sm" dir="ltr">{{ machine }}</span>
@@ -39,6 +39,10 @@
         {% if lic.state == 'lifetime' %}
         <div class="flash success" style="margin-top:14px">{{ icon('check')|safe }}
           <div>{{ t('license_admin_lifetime') }}</div></div>
+        {% elif lic.state == 'licensed' and lic.scope == 'subscription' %}
+        <div class="flash success" style="margin-top:14px">{{ icon('check')|safe }}
+          <div>{{ t('license_subscription_active', plan=t(lic.plan_label),
+                     expires=(lic.expires or t('plan_never_expires'))) }}</div></div>
         {% elif lic.state == 'licensed' and lic.scope == 'user' %}
         <div class="flash success" style="margin-top:14px">{{ icon('check')|safe }}
           <div>{{ t('license_user_licensed') }} — {{ t('license_scope') }}: {{ user.full_name or user.username }}</div></div>
@@ -187,6 +191,95 @@
         </form>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">{{ t('telegram_bot') }}</span>
+        <div class="card-actions">
+          {% if company.telegram_enabled %}<span class="badge b-ok">{{ t('active') }}</span>
+          {% else %}<span class="badge b-neutral">{{ t('inactive') }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="tiny muted" style="margin-top:0">{{ t('telegram_hint') }}</p>
+        <p class="tiny muted">{{ t('telegram_env_note') }}</p>
+        <form method="post" action="{{ url_for('license_telegram') }}" class="stack">
+          <div class="field">
+            <label class="label" for="telegram_token">{{ t('telegram_token') }}</label>
+            <input class="input mono" id="telegram_token" name="telegram_token" dir="ltr"
+                   value="{{ company.telegram_token or '' }}" autocomplete="off" placeholder="123456:ABC...">
+          </div>
+          <div class="field">
+            <label class="label" for="telegram_chat_id">{{ t('telegram_chat_id') }}</label>
+            <div class="row" style="gap:6px">
+              <input class="input mono" id="telegram_chat_id" name="telegram_chat_id" dir="ltr"
+                     value="{{ company.telegram_chat_id or '' }}" placeholder="123456789" style="flex:1">
+              <button class="btn btn-sm" type="submit"
+                      formaction="{{ url_for('license_telegram_detect') }}">{{ t('telegram_detect') }}</button>
+            </div>
+            <span class="help">{{ t('telegram_chat_hint') }}<br>{{ t('telegram_detect_hint') }}</span>
+          </div>
+          <div class="row">
+            <div class="field" style="flex:1">
+              <label class="label" for="telegram_digest_hour">{{ t('telegram_digest_hour') }}</label>
+              <input class="input mono" id="telegram_digest_hour" name="telegram_digest_hour"
+                     type="number" min="0" max="23" value="{{ company.telegram_digest_hour or 21 }}">
+            </div>
+            <div class="field" style="flex:2">
+              <label class="label" for="public_url">{{ t('public_url') }}</label>
+              <input class="input mono" id="public_url" name="public_url" dir="ltr"
+                     value="{{ company.public_url or '' }}" placeholder="https://sanadex.example.com">
+            </div>
+          </div>
+          <label class="check"><input type="checkbox" name="telegram_enabled" value="1"
+            {{ 'checked' if company.telegram_enabled }}>
+            <span class="tiny">{{ t('telegram_enabled') }}</span></label>
+          <button class="btn btn-primary" type="submit">{{ icon('save')|safe }} {{ t('save_changes') }}</button>
+        </form>
+        <hr class="hr">
+        <form method="post" action="{{ url_for('license_telegram_test') }}">
+          <button class="btn btn-sm" type="submit">{{ icon('arrow-up')|safe }} {{ t('telegram_send_test') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-head">
+    <span class="card-title">{{ t('subscription_requests') }}</span>
+    <div class="card-actions"><span class="badge b-warn">{{ requests|length }}</span></div>
+  </div>
+  <div class="table-wrap">
+    <table class="table table-sm">
+      <thead><tr><th>{{ t('user') }}</th><th>{{ t('subscription_plan') }}</th>
+        <th class="num">{{ t('price') }}</th><th>{{ t('date') }}</th><th class="act">{{ t('actions') }}</th></tr></thead>
+      <tbody>
+        {% for item in requests %}
+        <tr>
+          <td>{{ item.full_name or item.username }}<div class="tiny muted">@{{ item.username }}</div></td>
+          <td>{{ t('plan_' + item.plan) }} <div class="tiny muted">{{ t('plan_days', days=item.days) }}</div></td>
+          <td class="num">{{ item.price|money }} {{ company.currency or 'EGP' }}</td>
+          <td class="mono-sm">{{ item.created_at|stamp('%Y-%m-%d') }}</td>
+          <td class="act">
+            <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
+              <input type="hidden" name="uid" value="{{ item.user_id }}">
+              <input type="hidden" name="action" value="renew">
+              <input type="hidden" name="plan" value="{{ item.plan }}">
+              <button class="btn btn-sm btn-ok" type="submit">{{ t('subscription_approve') }}</button>
+            </form>
+            <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
+              <input type="hidden" name="uid" value="{{ item.user_id }}">
+              <input type="hidden" name="action" value="cancel">
+              <button class="btn btn-sm btn-ghost" type="submit">{{ t('subscription_reject') }}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted tiny">{{ t('subscription_no_requests') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -198,15 +291,22 @@
   <div class="table-wrap">
     <table class="table">
       <thead>
-        <tr><th>{{ t('user') }}</th><th>{{ t('license_trial_started') }}</th>
-          <th class="num">{{ t('license_trial_days') }}</th><th>{{ t('status') }}</th>
-          <th class="act">{{ t('actions') }}</th></tr>
+        <tr><th>{{ t('user') }}</th><th>{{ t('subscription_plan') }}</th>
+          <th>{{ t('license_expires') }}</th><th class="num">{{ t('license_trial_days') }}</th>
+          <th>{{ t('status') }}</th><th class="act">{{ t('actions') }}</th></tr>
       </thead>
       <tbody>
         {% for row in trials %}
         <tr>
-          <td>{{ row.full_name or row.username }}<div class="tiny muted">@{{ row.username }}</div></td>
-          <td class="mono-sm">{{ row.trial_started|stamp('%Y-%m-%d') if row.trial_started else '—' }}</td>
+          <td>{{ row.full_name or row.username }}<div class="tiny muted">@{{ row.username }}</div>
+            <div class="tiny muted">{{ t('license_trial_started') }}: {{ row.trial_started|stamp('%Y-%m-%d') if row.trial_started else '—' }}</div></td>
+          <td>
+            {% if row.subscription %}{{ t('plan_' + row.subscription.plan) }}
+              <div class="tiny muted">{{ row.subscription.price|money }} {{ company.currency or 'EGP' }}</div>
+            {% elif row.licence.plan_label %}{{ t(row.licence.plan_label) }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="mono-sm">{{ row.licence.expires or '—' }}</td>
           <td class="num">{{ row.licence.days_left if row.licence.days_left is not none else '∞' }}</td>
           <td>
             {% if row.licence.state == 'licensed' %}<span class="badge b-ok">{{ t('license_user_licensed') }}</span>
@@ -214,6 +314,19 @@
             {% else %}<span class="badge b-danger">{{ t('license_trial_expired') }}</span>{% endif %}
           </td>
           <td class="act">
+            {% if row.licence.scope != 'user' and row.licence.plan != 'lifetime' %}
+            <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
+              <input type="hidden" name="uid" value="{{ row.id }}">
+              <input type="hidden" name="action" value="renew">
+              <select class="select select-sm" name="plan" style="width:auto">
+                {% for plan in plans %}
+                <option value="{{ plan.key }}" {{ 'selected' if plan.key == '1m' }}>{{ t('plan_' + plan.key) }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-ok" type="submit">{{ t('license_renew') }}</button>
+            </form>
+            {% endif %}
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('license_share', uid=row.id) }}">{{ t('license_share') }}</a>
             <form class="inline-form" method="post" action="{{ url_for('license_user_action') }}">
               <input type="hidden" name="uid" value="{{ row.id }}">
               <input type="hidden" name="action" value="reset">
@@ -235,7 +348,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="muted tiny">{{ t('license_no_users') }}</td></tr>
+        <tr><td colspan="6" class="muted tiny">{{ t('license_no_users') }}</td></tr>
         {% endfor %}
       </tbody>
     </table>

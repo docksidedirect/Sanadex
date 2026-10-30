@@ -40,6 +40,41 @@ Environment variables (all optional; defaults in brackets):
 | `WEB_THREADS` | waitress worker threads [`8`] |
 | `SANADEX_DEBUG` | `1` shows tracebacks to administrators |
 | `SANADEX_DB=mssql` + `SANADEX_MSSQL_DSN` | run on Microsoft SQL Server instead of SQLite |
+| `SANADEX_TELEGRAM_TOKEN` | Telegram bot token — optional, overrides the Licence screen |
+| `SANADEX_TELEGRAM_CHAT_ID` | admin chat id(s), comma-separated — optional, overrides the screen |
+| `SANADEX_TELEGRAM_DIGEST_HOUR` | daily digest hour `0–23` [`21`] |
+| `SANADEX_PUBLIC_URL` | public app URL used by the bot's “Open admin” button |
+| `SANADEX_TELEGRAM_DISABLE` | `1` on every extra WSGI worker/replica except one |
+
+### Coolify (Docker)
+
+Create the application from this repository (Dockerfile or Docker Compose).
+Coolify injects the variables below into the container; no `.env` file is needed
+on the server. Add them under **Application → Environment Variables**, then
+**Redeploy** (environment changes do not need a Git push).
+
+| Variable | Required? | Value |
+| --- | --- | --- |
+| `SANADEX_SECRET` | **yes** | 48+ random characters |
+| `SANADEX_LICENSE_SECRET` | **yes** | private licence-signing secret |
+| `SANADEX_ADMIN_PASSWORD` | optional | pin the initial admin password |
+| `SANADEX_TELEGRAM_TOKEN` | optional | token from @BotFather |
+| `SANADEX_TELEGRAM_CHAT_ID` | optional | your numeric Telegram id |
+| `SANADEX_PUBLIC_URL` | optional | `https://your-app-domain` |
+| `SANADEX_TELEGRAM_DIGEST_HOUR` | optional | `21` |
+| `SANADEX_TELEGRAM_DISABLE` | only with >1 replica | `1` on all but one |
+
+Use **either** the Licence screen **or** the environment variables for the
+Telegram token/chat id. Environment variables win, so if you set them in Coolify
+the fields on the Licence screen are ignored (this is intentional for secrets).
+
+Mount a persistent volume at **`/data`** (the image already declares it) so
+`sanadex.db`, `backups/` and `uploads/` survive redeploys.
+
+The bundled `docker-compose.yml` uses `${VAR}` substitutions and `expose: 8000`
+so it works both with Coolify and with a local `docker compose` + `.env` file
+(uncomment the `ports:` block for direct local access).
+
 
 ---
 

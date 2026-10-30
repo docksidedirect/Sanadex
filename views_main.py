@@ -12,6 +12,7 @@ import db
 import gdrive
 import i18n
 import license as license_lib
+import telegram_bot
 from core import (T, audit, can, current_lang, flash, guard, json_error, json_ok, money,
                   next_number, q, render, one, scalar, today, x)
 from db import ex
@@ -118,10 +119,6 @@ def _alerts(req):
         alerts.append({'icon': 'credit-card', 'tone': 'warn', 'route': 'cheques',
                        'text': T(req, 'alert_cheque', number=row['number'],
                                  amount=core.money(row['amount']), date=row['due_date'])})
-    pending = scalar(conn, 'SELECT COUNT(*) c FROM users WHERE active=0')
-    if pending:
-        alerts.append({'icon': 'users', 'tone': 'info', 'route': 'users',
-                       'text': T(req, 'pending_users_alert', n=pending)})
     for row in q(conn, 'SELECT name, balance, credit_limit FROM customers '
                        'WHERE credit_limit>0 AND balance>credit_limit ORDER BY balance DESC LIMIT 5'):
         alerts.append({'icon': 'users', 'tone': 'danger', 'route': 'customers',
@@ -244,7 +241,7 @@ def settings(req):
 # --------------------------------------------------------------------------- #
 @router.route('backup_restore', '/backup', ('GET',))
 def backup_restore(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     company = req.company
@@ -265,7 +262,7 @@ def backup_restore(req):
 
 @router.route('backup_now', '/backup/now', ('POST',))
 def backup_now(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     try:
@@ -283,7 +280,7 @@ def backup_now(req):
 
 @router.route('backup_download', '/backup/download/<name>', ('GET',))
 def backup_download(req, name):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     name = os.path.basename(name)
@@ -295,7 +292,7 @@ def backup_download(req, name):
 
 @router.route('backup_delete', '/backup/delete', ('POST',))
 def backup_delete(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     name = os.path.basename(req.f('name') or '')
@@ -311,7 +308,7 @@ def backup_delete(req):
 
 @router.route('backup_restore_do', '/backup/restore', ('POST',))
 def backup_restore_do(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     upload = req.files.get('file')
@@ -350,7 +347,7 @@ def gdrive_redirect_uri(req):
 
 @router.route('gdrive_connect', '/gdrive/connect', ('GET',))
 def gdrive_connect(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     company = req.company
@@ -363,7 +360,7 @@ def gdrive_connect(req):
 
 @router.route('gdrive_callback', '/gdrive/callback', ('GET',))
 def gdrive_callback(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     code = req.q('code')
@@ -392,7 +389,7 @@ def gdrive_callback(req):
 
 @router.route('gdrive_disconnect', '/gdrive/disconnect', ('POST',))
 def gdrive_disconnect(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     ex(req.db, "UPDATE company SET gdrive_refresh_token='', gdrive_enabled=0, gdrive_email='' WHERE id=1")
@@ -402,7 +399,7 @@ def gdrive_disconnect(req):
 
 @router.route('gdrive_upload', '/gdrive/upload', ('POST',))
 def gdrive_upload(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     company = req.company
@@ -423,7 +420,7 @@ def gdrive_upload(req):
 
 @router.route('gdrive_restore', '/gdrive/restore/<fid>', ('POST',))
 def gdrive_restore(req, fid):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     company = req.company
@@ -539,7 +536,7 @@ def api_search(req):
 # --------------------------------------------------------------------------- #
 @router.route('audit', '/audit', ('GET',))
 def audit_page(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     page, per, offset = core.page_params(req, 60)
@@ -551,7 +548,7 @@ def audit_page(req):
 
 @router.route('system_info', '/system', ('GET',))
 def system_info(req):
-    blocked = guard(req, 'p_settings')
+    blocked = guard(req, 'admin')
     if blocked:
         return blocked
     counts = {}
@@ -698,12 +695,19 @@ def demo_clear(req):
 
 @router.route('signup', '/signup', ('GET', 'POST'))
 def signup(req):
-    """Self registration: the account is created disabled and needs admin approval."""
+    """Self registration: the account is active immediately with a 14-day trial.
+
+    A plan chosen on the form is stored as a request; the administrator
+    activates it (and renews it later) from the Licence screen.
+    """
     if req.user:
         return redirect(url_for('dashboard'), req)
     allowed = int(req.company.get('allow_signup') or 0) == 1
     error = ''
     form = {key: req.f(key) for key in ('full_name', 'username', 'phone', 'email')}
+    selected_plan = req.f('plan') or 'trial'
+    if selected_plan != 'trial' and not license_lib.plan(selected_plan):
+        selected_plan = 'trial'
     if req.method == 'POST' and allowed:
         full_name = (req.f('full_name') or '').strip()
         username = (req.f('username') or '').strip().lower()
@@ -722,15 +726,31 @@ def signup(req):
         elif one(req.db, 'SELECT id FROM users WHERE username=?', (username,)):
             error = T(req, 'signup_username_taken')
         else:
+            now = time.time()
+            role_id = db.default_role_id(req.db)
             user_id = x(req.db, 'INSERT INTO users(username,password,full_name,phone,email,role_id,'
-                                'is_admin,active,lang,created_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-                        (username, hash_password(password), full_name, phone, email, 0, 0, 0, '',
-                         time.time(), 'signup'))
-            audit(req, 'create', 'users', user_id, f'signup pending: {username}')
-            flash(req, T(req, 'signup_pending_msg'), 'success')
+                                'is_admin,active,lang,created_at,trial_started,notes) '
+                                'VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                        (username, hash_password(password), full_name, phone, email, role_id,
+                         0, 1, '', now, now, 'signup'))
+            if selected_plan != 'trial':
+                license_lib.request_subscription(req.db, user_id, selected_plan, 'signup')
+            audit(req, 'create', 'users', user_id,
+                  f'signup: {username} · {selected_plan}')
+            telegram_bot.notify_new_account(user_id,
+                                            selected_plan if selected_plan != 'trial' else '')
+            message = T(req, 'signup_ready_msg')
+            if selected_plan != 'trial':
+                info = license_lib.plan(selected_plan)
+                message += ' ' + T(req, 'signup_plan_requested',
+                                    plan=T(req, 'plan_' + selected_plan),
+                                    price=f"{info['price']:,.0f}")
+            flash(req, message, 'success')
             return redirect(url_for('login'), req)
     return render(req, 'signup.html', title=T(req, 'signup'), allowed=allowed,
-                  error=error, form=form)
+                  error=error, form=form, plans=license_lib.plans(),
+                  selected_plan=selected_plan, trial_days=license_lib.TRIAL_DAYS)
+
 
 
 @router.route('healthz', '/healthz', ('GET',))
@@ -768,6 +788,8 @@ def license_page(req):
     return render(req, 'license.html', title=T(req, 'license'), subtitle=T(req, 'license_sub'),
                   active='license', lic=access, installation=installation,
                   trials=license_lib.user_trials(req.db),
+                  requests=license_lib.pending_requests(req.db),
+                  plans=license_lib.plans(),
                   machine=license_lib.machine_id(),
                   history=license_lib.history(req.db), editions=license_lib.EDITIONS,
                   generated=generated, trial_days=license_lib.TRIAL_DAYS,
@@ -849,15 +871,110 @@ def license_user_action(req):
         license_lib.reset_trial(req.db, user_id)
         audit(req, 'update', 'licenses', user_id, f'trial reset for {target["username"]}')
         flash(req, T(req, 'license_trial_reset', name=target['username']), 'success')
+    elif action == 'renew':
+        plan_key = req.f('plan')
+        info = license_lib.plan(plan_key)
+        if not info:
+            flash(req, T(req, 'license_bad_format'), 'danger')
+            return redirect(url_for('license'), req)
+        subscription = license_lib.activate_subscription(req.db, user_id, plan_key,
+                                                         req.user['username'])
+        if not subscription:
+            flash(req, T(req, 'license_already_lifetime'), 'warning')
+            return redirect(url_for('license'), req)
+        audit(req, 'update', 'licenses', user_id,
+              f'{plan_key} activated/renewed for {target["username"]}')
+        expires = T(req, 'license_lifetime_plan') if subscription['days_left'] is None \
+            else (subscription['expires_iso'] or '')
+        flash(req, T(req, 'license_renewed', name=target['username'],
+                     plan=T(req, 'plan_' + plan_key), expires=expires), 'success')
+    elif action == 'cancel':
+        license_lib.cancel_subscription(req.db, user_id)
+        audit(req, 'update', 'licenses', user_id, f'subscription cancelled for {target["username"]}')
+        flash(req, T(req, 'license_subscription_cancelled', name=target['username']), 'warning')
     elif action == 'grant':
         license_lib.set_user_licensed(req.db, user_id, True)
         audit(req, 'update', 'licenses', user_id, f'lifetime granted to {target["username"]}')
         flash(req, T(req, 'license_granted', name=target['username']), 'success')
     elif action == 'revoke':
         license_lib.set_user_licensed(req.db, user_id, False)
+        license_lib.cancel_subscription(req.db, user_id)
         license_lib.reset_trial(req.db, user_id)
         audit(req, 'update', 'licenses', user_id, f'lifetime revoked from {target["username"]}')
         flash(req, T(req, 'license_revoked_user', name=target['username']), 'warning')
+    return redirect(url_for('license'), req)
+
+
+@router.route('license_share', '/license/share/<uid>', ('GET',))
+def license_share(req, uid):
+    blocked = guard(req, 'admin')
+    if blocked:
+        return blocked
+    target = one(req.db, 'SELECT * FROM users WHERE id=?', (core.safe_int(uid),))
+    if not target:
+        return core.not_found()
+    payload = license_lib.share_text(req.db, target).encode('utf-8')
+    filename = f"sanadex-licence-{target['username']}.txt"
+    audit(req, 'read', 'licenses', target['id'], f'shared licence for {target["username"]}')
+    return file_response(payload, filename, 'text/plain; charset=utf-8')
+
+
+@router.route('license_telegram_detect', '/license/telegram/detect', ('POST',))
+def license_telegram_detect(req):
+    blocked = guard(req, 'admin')
+    if blocked:
+        return blocked
+    token = (req.f('telegram_token') or '').strip() or (req.company.get('telegram_token') or '')
+    if not token:
+        flash(req, T(req, 'telegram_missing'), 'danger')
+        return redirect(url_for('license'), req)
+    ex(req.db, 'UPDATE company SET telegram_token=? WHERE id=1', (token,))
+    chats = telegram_bot.recent_chats(token)
+    if not chats:
+        flash(req, T(req, 'telegram_no_chats'), 'warning')
+    elif len(chats) == 1:
+        chat = chats[0]
+        ex(req.db, 'UPDATE company SET telegram_chat_id=? WHERE id=1', (chat['id'],))
+        flash(req, T(req, 'telegram_detected',
+                     name=chat['name'] or chat['username'] or chat['id'], id=chat['id']), 'success')
+    else:
+        listing = ', '.join(f"{c['name'] or c['username']} ({c['id']})" for c in chats[:8])
+        flash(req, T(req, 'telegram_detected_many', list=listing), 'warning')
+    return redirect(url_for('license'), req)
+
+
+@router.route('license_telegram', '/license/telegram', ('POST',))
+def license_telegram(req):
+    blocked = guard(req, 'admin')
+    if blocked:
+        return blocked
+    token = (req.f('telegram_token') or '').strip()
+    chat_id = (req.f('telegram_chat_id') or '').strip()
+    public_url = (req.f('public_url') or '').strip().rstrip('/')
+    digest_hour = max(0, min(23, core.safe_int(req.f('telegram_digest_hour'), 21)))
+    enabled = 1 if req.f('telegram_enabled') else 0
+    ex(req.db, 'UPDATE company SET telegram_enabled=?, telegram_token=?, telegram_chat_id=?, '
+               'telegram_digest_hour=?, public_url=? WHERE id=1',
+       (enabled, token, chat_id, digest_hour, public_url))
+    audit(req, 'update', 'company', 1, 'telegram bot settings')
+    flash(req, T(req, 'telegram_saved'), 'success')
+    return redirect(url_for('license'), req)
+
+
+@router.route('license_telegram_test', '/license/telegram/test', ('POST',))
+def license_telegram_test(req):
+    blocked = guard(req, 'admin')
+    if blocked:
+        return blocked
+    cfg = telegram_bot.config()
+    if not cfg.get('token') or not cfg.get('chat_ids'):
+        flash(req, T(req, 'telegram_missing'), 'danger')
+    elif telegram_bot.send(cfg, '✅ Sanadex.wanis.online — test message. '
+                                f'The bot is connected to {req.user["username"]}.',
+                           keyboard=telegram_bot.menu_keyboard(cfg)):
+        flash(req, T(req, 'telegram_test_sent'), 'success')
+    else:
+        flash(req, T(req, 'telegram_test_failed'), 'danger')
     return redirect(url_for('license'), req)
 
 

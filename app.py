@@ -13,6 +13,7 @@ import traceback
 import core
 import db
 import license as license_lib
+import telegram_bot
 from framework import (APP_NAME, Request, Response, not_found, redirect, router,
                        static_response, url_for)
 
@@ -40,6 +41,7 @@ def ensure_database():
         if _ready['path'] != db.DB_PATH:
             db.init_db()
             _ready['path'] = db.DB_PATH
+            telegram_bot.start()
 
 
 TRIAL_EXEMPT_PREFIXES = ('/static/', '/uploads/', '/lang/', '/theme/', '/signup')
@@ -171,6 +173,7 @@ def application(environ, start_response):
 def main():
     from wsgiref.simple_server import WSGIRequestHandler, make_server
     db.init_db()
+    telegram_bot.start()
     port = int(os.environ.get('PORT', '8000'))
     host = os.environ.get('HOST', '0.0.0.0')
 

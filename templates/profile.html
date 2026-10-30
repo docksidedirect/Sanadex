@@ -52,6 +52,28 @@
       </div>
     </div>
     <div class="card">
+      <div class="card-head">
+        <span class="card-title">{{ t('my_subscription') }}</span>
+        <div class="card-actions">
+          {% if lic.state in ('licensed', 'lifetime') %}<span class="badge b-ok">{{ t('license_active') }}</span>
+          {% elif lic.state == 'trial' %}<span class="badge b-warn">{{ t('license_user_trial') }}</span>
+          {% else %}<span class="badge b-danger">{{ t('license_expired') }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="kv">
+          <dt>{{ t('subscription_plan') }}</dt>
+          <dd>{{ t(lic.plan_label) if lic.plan_label else t('edition_' + lic.edition) }}</dd>
+          <dt>{{ t('license_expires') }}</dt><dd class="mono">{{ lic.expires or '—' }}</dd>
+          <dt>{{ t('license_days_left') }}</dt>
+          <dd class="mono">{{ lic.days_left if lic.days_left is not none else '∞' }}</dd>
+        </div>
+        {% if not user.is_admin %}
+        <p class="tiny muted" style="margin:10px 0 0">{{ t('subscription_contact_admin') }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card">
       <div class="card-body">
         <div class="section-label">{{ t('shortcuts') }}</div>
         <div class="row"><span class="kbd">Ctrl K</span><span class="tiny muted">{{ t('quick_search') }}</span></div>

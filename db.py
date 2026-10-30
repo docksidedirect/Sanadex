@@ -28,7 +28,7 @@ BACKUP_DIR = os.environ.get('SANADEX_BACKUP_DIR') or os.path.join(BASE, 'backups
 UPLOAD_DIR = os.environ.get('SANADEX_UPLOAD_DIR') or os.path.join(BASE, 'uploads')
 LEGACY_DB = os.path.join(BASE, 'sahm.db')
 KEEP_BACKUPS = 40
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # --------------------------------------------------------------------------- #
 # schema declaration:  table -> [(column, kind, default)]
@@ -52,6 +52,9 @@ TABLES = {
         ('gdrive_last_sync', 'ts', 0), ('gdrive_email', 'str', ''),
         ('invoice_terms', 'text', ''), ('receipt_footer', 'str', ''),
         ('theme', 'str', 'light'), ('show_cost', 'int', 1),
+        ('telegram_enabled', 'int', 0), ('telegram_token', 'text', ''),
+        ('telegram_chat_id', 'str', ''), ('telegram_digest_hour', 'int', 21),
+        ('public_url', 'str', ''),
     ],
     'roles': [
         ('name', 'str', ''), ('notes', 'str', ''), ('is_system', 'int', 0),
@@ -183,6 +186,11 @@ TABLES = {
                  ('seats', 'int', 1), ('issued', 'str', ''), ('expires', 'str', ''),
                  ('machine', 'str', ''), ('status', 'str', 'active'), ('created_at', 'ts', 0),
                  ('created_by', 'str', ''), ('note', 'str', '')],
+    # Per-account subscriptions: requested at sign-up, activated/renewed by the admin.
+    'subscriptions': [('user_id', 'int', 0), ('plan', 'str', ''), ('price', 'real', 0),
+                      ('days', 'int', 0), ('starts', 'ts', 0), ('expires', 'ts', 0),
+                      ('status', 'str', 'pending'), ('created_at', 'ts', 0),
+                      ('created_by', 'str', ''), ('note', 'str', '')],
 }
 
 INDEXES = [
@@ -200,6 +208,7 @@ INDEXES = [
     ('ix_att_emp', 'attendance', ['employee_id', 'adate'], True),
     ('ix_jlines', 'journal_lines', ['journal_id'], False),
     ('ix_inst_plan', 'installments', ['plan_id'], False),
+    ('ix_sub_user', 'subscriptions', ['user_id', 'status'], False),
 ]
 
 KIND_SQLITE = {'int': 'INTEGER', 'real': 'REAL', 'str': 'TEXT', 'text': 'TEXT', 'ts': 'REAL'}
@@ -545,6 +554,39 @@ def _sync_pinned_admin_password(conn):
               '(remove the variable to change it from the UI)')
 
 
+def default_role_id(conn):
+    """Return (creating when needed) the built-in role for new accounts.
+
+    Self-registered accounts get every operational permission but never the
+    administrator flag, so the licence generator and user management stay
+    owner-only. The role can still be edited from Roles afterwards.
+    """
+    meta = one(conn, "SELECT v FROM app_meta WHERE k='default_role_id'")
+    if meta:
+        try:
+            rid = int(meta['v'])
+        except (TypeError, ValueError):
+            rid = 0
+        if rid and one(conn, 'SELECT id FROM roles WHERE id=?', (rid,)):
+            return rid
+    row = one(conn, "SELECT id FROM roles WHERE is_system=1 AND name='Staff' ORDER BY id")
+    if row:
+        rid = row['id']
+    else:
+        cur = conn.execute(
+            'INSERT INTO roles(name,notes,is_system,p_sell,p_buy,p_inv,p_treasury,p_reports,'
+            'p_settings,p_hr,p_acc,p_services,p_inst) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            ('Staff', 'Default role for new accounts', 1,
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1))
+        conn.commit()
+        rid = cur.lastrowid
+    cur = conn.execute("UPDATE app_meta SET v=? WHERE k='default_role_id'", (str(rid),))
+    if not cur.rowcount:
+        conn.execute("INSERT INTO app_meta(k,v) VALUES('default_role_id',?)", (str(rid),))
+    conn.commit()
+    return rid
+
+
 def seed(conn):
     """Insert sensible defaults for a brand new database (idempotent)."""
     from framework import hash_password
@@ -576,6 +618,7 @@ def seed(conn):
         conn.execute('INSERT INTO roles(name,notes,is_system,p_sell,p_buy,p_inv,p_treasury,p_reports,'
                      'p_settings,p_hr,p_acc,p_services,p_inst) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
                      ('Administrator', 'Full access', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1))
+    default_role_id(conn)
     if not one(conn, 'SELECT id FROM app_meta WHERE k=?', ('schema_version',)):
         conn.execute('INSERT INTO app_meta(k,v) VALUES(?,?)', ('schema_version', str(SCHEMA_VERSION)))
     if not one(conn, 'SELECT id FROM app_meta WHERE k=?', ('installed_at',)):
